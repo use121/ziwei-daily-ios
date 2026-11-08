@@ -46,14 +46,33 @@ jobs:
           cp -R build/ZiWeiDaily.xcarchive/Products/Applications/ZiWeiDaily.app build/Payload/
           cd build
           xattr -cr Payload
-          rm -f ZiWeiDaily-unsigned.ipa
-          COPYFILE_DISABLE=1 zip -qry ZiWeiDaily-unsigned.ipa Payload
+          rm -f ZiWeiDaily-unsigned.ipa ZiWeiDaily-unsigned-store.ipa
+          # -X 去掉 Info-ZIP 的 0x5455/0x7875 附加字段，部分签名工具会因它解析失败
+          COPYFILE_DISABLE=1 zip -qryX ZiWeiDaily-unsigned.ipa Payload
+          # 零压缩变体：给只认 store 方式的签名工具兜底
+          COPYFILE_DISABLE=1 zip -qryX0 ZiWeiDaily-unsigned-store.ipa Payload
+
+      - name: Verify IPA structure
+        run: |
+          set -e
+          for f in build/ZiWeiDaily-unsigned.ipa build/ZiWeiDaily-unsigned-store.ipa; do
+            echo "== $f =="
+            unzip -tq "$f"
+            unzip -l "$f" | grep -q "Payload/ZiWeiDaily.app/Info.plist"
+            unzip -l "$f" | grep -q "Payload/ZiWeiDaily.app/ZiWeiDaily"
+            if unzip -l "$f" | grep -qE "__MACOSX|\.DS_Store"; then
+              echo "包内含 macOS 垃圾文件"; exit 1
+            fi
+            echo "OK"
+          done
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
           name: ZiWeiDaily-unsigned-ipa
-          path: build/ZiWeiDaily-unsigned.ipa
+          path: |
+            build/ZiWeiDaily-unsigned.ipa
+            build/ZiWeiDaily-unsigned-store.ipa
           if-no-files-found: error
           retention-days: 30
 
@@ -61,4 +80,4 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "${GITHUB_REF_NAME}" build/ZiWeiDaily-unsigned.ipa --generate-notes
+        run: gh release create "${GITHUB_REF_NAME}" build/ZiWeiDaily-unsigned.ipa build/ZiWeiDaily-unsigned-store.ipa --generate-notes
