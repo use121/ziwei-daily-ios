@@ -506,6 +506,30 @@ final class ZiWeiCoreTests: XCTestCase {
         }
     }
 
+    func testLeapMonthModeChangesWholeChart() throws {
+        // 2020-06-01 为农历闰四月初十
+        let birth = date(2020, 6, 1, 10)
+        let lunar = ChineseCalendarConverter.lunarDate(from: birth, timeZone: timeZone)
+        XCTAssertTrue(lunar.isLeapMonth, "该日期应落在闰月，实际：\(lunar.displayText)")
+
+        var current = input(birth)
+        current.leapMonthMode = .current
+        var next = input(birth)
+        next.leapMonthMode = .nextMonth
+        var splitHalf = input(birth)
+        splitHalf.leapMonthMode = .splitHalf
+
+        let chartCurrent = try ChartEngine.makeChart(from: current, referenceDate: date(2026, 11, 8))
+        let chartNext = try ChartEngine.makeChart(from: next, referenceDate: date(2026, 11, 8))
+        let chartSplit = try ChartEngine.makeChart(from: splitHalf, referenceDate: date(2026, 11, 8))
+
+        // 初十在十五之前：十五为界口径应与「当本月」一致
+        XCTAssertEqual(chartCurrent.lifeBranch, chartSplit.lifeBranch)
+        // 作下月则命宫整体前移一宫
+        XCTAssertEqual(chartNext.lifeBranch, Ganzhi.mod(chartCurrent.lifeBranch + 1, 12))
+        XCTAssertNotEqual(chartNext.palace(.life).mainStars, chartCurrent.palace(.life).mainStars)
+    }
+
     func testClassicLibraryIntegrity() {
         XCTAssertFalse(ClassicLibrary.quotes.isEmpty)
         for quote in ClassicLibrary.quotes {

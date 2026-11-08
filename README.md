@@ -51,7 +51,7 @@ Sources/ZiWeiCore/
   TransformationPath.swift       四化路径与十三维评分
   Longevity.swift                 长生十二神、小限、飞星与自化
   Classics.swift                  公版古籍断语摘编
-Tests/ZiWeiCoreTests/             39 项单元测试
+Tests/ZiWeiCoreTests/             40 项单元测试
 App/ZiWeiDaily/                   SwiftUI 应用（含长图导出 SharePosterView）
 project.yml                       XcodeGen 工程描述
 Scripts/build_ipa.sh              本地构建未签名 IPA
