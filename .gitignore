@@ -13,3 +13,6 @@ xcuserdata/
 
 # 本地宣传素材
 Promo/
+
+# 图标候选中间产物（可用 Scripts/make_icon.py 重生成）
+Scripts/icon-candidates/
