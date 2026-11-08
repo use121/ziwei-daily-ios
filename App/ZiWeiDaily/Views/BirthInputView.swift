@@ -12,6 +12,7 @@ private struct PlacePreset: Identifiable {
 struct BirthInputView: View {
     @EnvironmentObject private var state: AppState
     @State private var showClearConfirmation = false
+    @State private var showDeleteProfileConfirmation = false
 
     private let places = [
         PlacePreset(name: "北京", longitude: "116.4074", timeZone: "Asia/Shanghai"),
@@ -46,6 +47,39 @@ struct BirthInputView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    Menu {
+                        ForEach(state.profiles) { profile in
+                            Button {
+                                state.selectProfile(profile.id)
+                            } label: {
+                                if profile.id == state.currentProfileID {
+                                    Label(profile.name, systemImage: "checkmark")
+                                } else {
+                                    Text(profile.name)
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Text("当前档案")
+                            Spacer()
+                            Text(state.currentProfileName)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Button("新建档案") { state.addProfile() }
+                    if state.profiles.count > 1 {
+                        Button("删除当前档案", role: .destructive) {
+                            showDeleteProfileConfirmation = true
+                        }
+                    }
+                } header: {
+                    Text("档案")
+                } footer: {
+                    Text("可以为家人朋友各建一份档案，随时切换排盘；全部数据只保存在本机。")
+                }
+
                 Section {
                     TextField("称呼（选填）", text: $state.input.displayName)
                         .textInputAutocapitalization(.never)
@@ -104,6 +138,22 @@ struct BirthInputView: View {
                 }
 
                 Section {
+                    Toggle("夏令时校正（1986–1991）", isOn: $state.input.adjustForDaylightSaving)
+                    Picker("闰月口径", selection: $state.input.leapMonthMode) {
+                        ForEach(LeapMonthMode.allCases) { mode in
+                            Text(mode.rawValue).tag(mode)
+                        }
+                    }
+                    Text(state.input.leapMonthMode.note)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } header: {
+                    Text("历法设置")
+                } footer: {
+                    Text("1986–1991 年国内实行过夏令时，此期间出生建议保持开启；闰月口径影响月建、命身宫与安星，切换后需重新排盘。")
+                }
+
+                Section {
                     Toggle("专业版已解锁", isOn: Binding(
                         get: { state.isProUnlocked },
                         set: { state.setProUnlocked($0) }
@@ -112,14 +162,14 @@ struct BirthInputView: View {
                         Text("本期开放")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(Theme.cinnabar)
-                        Text("本命 / 大限 / 流年 / 流月切换 · 星曜七档亮度 · 三方四正高亮 · 宫位四段式解读 · 十三维命理解读 · 经典格局 · 四化路径 · 六维雷达图 · 全盘报告导出")
+                        Text("本命 / 大限 / 流年 / 流月 / 流日 / 流时六层切换 · 星曜七档亮度 · 三方四正高亮 · 宫位四段式解读 · 十三维命理解读 · 经典格局 · 四化路径 · 六维雷达图 · 飞星自化 · 长生十二神 · 小限 · 古籍断语摘编 · 全盘报告导出")
                             .font(.caption)
                             .foregroundStyle(Theme.secondaryInk)
                         Text("后续版本")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(Theme.gold)
                             .padding(.top, 2)
-                        Text("飞星自化 · 长生十二神 · 小限 · 流日流时盘 · 双人合盘")
+                        Text("多档案管理 · 长图导出")
                             .font(.caption)
                             .foregroundStyle(Theme.secondaryInk)
                     }
@@ -155,7 +205,7 @@ struct BirthInputView: View {
                     .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
 
                     if state.chart != nil {
-                        Button("清除本地资料", role: .destructive) {
+                        Button("清除全部档案与本地资料", role: .destructive) {
                             showClearConfirmation = true
                         }
                         .frame(maxWidth: .infinity)
@@ -170,8 +220,12 @@ struct BirthInputView: View {
             .navigationTitle("出生资料")
             .navigationBarTitleDisplayMode(.large)
             .environment(\.locale, Locale(identifier: "zh_CN"))
-            .confirmationDialog("确定清除本机保存的出生资料与命盘吗？", isPresented: $showClearConfirmation, titleVisibility: .visible) {
+            .confirmationDialog("确定清除本机保存的全部档案与命盘吗？此操作不可撤销。", isPresented: $showClearConfirmation, titleVisibility: .visible) {
                 Button("清除资料", role: .destructive) { state.clearLocalData() }
+                Button("取消", role: .cancel) {}
+            }
+            .confirmationDialog("删除当前档案后将切换到其他档案，此操作不可撤销。", isPresented: $showDeleteProfileConfirmation, titleVisibility: .visible) {
+                Button("删除档案", role: .destructive) { state.deleteCurrentProfile() }
                 Button("取消", role: .cancel) {}
             }
         }

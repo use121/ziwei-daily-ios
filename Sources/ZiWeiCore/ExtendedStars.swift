@@ -7,12 +7,15 @@ import Foundation
 public enum AuxiliaryStars {
 
     /// 安放全部辅星、神煞。返回「星曜 → 地支」。
+    ///
+    /// `monthOverride`：闰月口径换算后的有效月份；不传则用原农历月。
     public static func placements(
         lunar: LunarDate,
         hourBranch: Int,
-        lifeBranch: Int
+        lifeBranch: Int,
+        monthOverride: Int? = nil
     ) -> [Star: Int] {
-        let monthOffset = lunar.month - 1
+        let monthOffset = (monthOverride ?? lunar.month) - 1
         let dayOffset = lunar.day - 1
         var result: [Star: Int] = [:]
 

@@ -145,12 +145,37 @@ public enum TransformationKind: String, Codable, CaseIterable, Sendable {
     case ji = "化忌"
 }
 
+/// 闰月排盘口径：各流派对闰月的处理不同，提供四种可切换。
+public enum LeapMonthMode: String, Codable, CaseIterable, Identifiable, Sendable {
+    /// 闰月整月视同本月；安紫微按前一正一月天数累计。
+    case current = "闰月当本月"
+    /// 闰月整月视作下一月；安紫微按当日数起，不累计。
+    case nextMonth = "闰月作下月"
+    /// 闰月十五为界：初一至十五算本月，十六起算下月；下半月安紫微重新起数。
+    case splitHalf = "十五为界"
+    /// 同样十五为界，但安紫微始终按前一正一月天数累计。
+    case splitAccumulate = "中气分界（累计）"
+
+    public var id: String { rawValue }
+
+    public var note: String {
+        switch self {
+        case .current: "月建不变，紫微星按上一月天数加当日累计安放，是多数现代排盘的默认做法"
+        case .nextMonth: "整个闰月按下一月排盘，月建顺推一位，安紫微从当日起数"
+        case .splitHalf: "闰月初一至十五按本月、十六起按下月，下半月的紫微从十六重新起数"
+        case .splitAccumulate: "月建以十五为界切换，紫微星全程按上一月天数累计，不重新起数"
+        }
+    }
+}
+
 public enum TransformationSource: String, Codable, Sendable {
     case birth = "生年"
     case decade = "大限"
     case year = "流年"
     case month = "流月"
     case day = "流日"
+    case hour = "流时"
+    case palace = "宫干"
 }
 
 public struct Transformation: Codable, Equatable, Sendable {
@@ -174,6 +199,8 @@ public struct BirthInput: Codable, Equatable, Sendable {
     public var longitudeText: String
     public var useTrueSolarTime: Bool
     public var lateZiNextDay: Bool
+    public var leapMonthMode: LeapMonthMode
+    public var adjustForDaylightSaving: Bool
 
     public init(
         displayName: String = "",
@@ -183,7 +210,9 @@ public struct BirthInput: Codable, Equatable, Sendable {
         timeZoneIdentifier: String = "Asia/Shanghai",
         longitudeText: String = "",
         useTrueSolarTime: Bool = false,
-        lateZiNextDay: Bool = true
+        lateZiNextDay: Bool = true,
+        leapMonthMode: LeapMonthMode = .current,
+        adjustForDaylightSaving: Bool = true
     ) {
         self.displayName = displayName
         self.birthDate = birthDate
@@ -193,6 +222,23 @@ public struct BirthInput: Codable, Equatable, Sendable {
         self.longitudeText = longitudeText
         self.useTrueSolarTime = useTrueSolarTime
         self.lateZiNextDay = lateZiNextDay
+        self.leapMonthMode = leapMonthMode
+        self.adjustForDaylightSaving = adjustForDaylightSaving
+    }
+
+    /// 兼容旧版存档：新增字段缺失时回落到默认值。
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        displayName = try container.decode(String.self, forKey: .displayName)
+        birthDate = try container.decode(Date.self, forKey: .birthDate)
+        gender = try container.decodeIfPresent(Gender.self, forKey: .gender)
+        birthplace = try container.decode(String.self, forKey: .birthplace)
+        timeZoneIdentifier = try container.decode(String.self, forKey: .timeZoneIdentifier)
+        longitudeText = try container.decode(String.self, forKey: .longitudeText)
+        useTrueSolarTime = try container.decode(Bool.self, forKey: .useTrueSolarTime)
+        lateZiNextDay = try container.decode(Bool.self, forKey: .lateZiNextDay)
+        leapMonthMode = try container.decodeIfPresent(LeapMonthMode.self, forKey: .leapMonthMode) ?? .current
+        adjustForDaylightSaving = try container.decodeIfPresent(Bool.self, forKey: .adjustForDaylightSaving) ?? true
     }
 }
 
@@ -242,6 +288,15 @@ public struct ResolvedBirth: Codable, Equatable, Sendable {
     public let lunarDate: LunarDate
     public let hourBranch: Int
     public let correctionMinutes: Int
+    public let appliedDaylightSaving: Bool
+
+    public init(adjustedDate: Date, lunarDate: LunarDate, hourBranch: Int, correctionMinutes: Int, appliedDaylightSaving: Bool = false) {
+        self.adjustedDate = adjustedDate
+        self.lunarDate = lunarDate
+        self.hourBranch = hourBranch
+        self.correctionMinutes = correctionMinutes
+        self.appliedDaylightSaving = appliedDaylightSaving
+    }
 }
 
 public struct Palace: Codable, Equatable, Identifiable, Sendable {

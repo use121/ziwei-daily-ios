@@ -648,6 +648,10 @@ public enum InsightEngine {
             return "流年层看的是当年被引动的部分。"
         case .month:
             return "流月层看的是这个月具体落在哪件事上。"
+        case .day:
+            return "流日层看的是当天的节奏与具体事项。"
+        case .hour:
+            return "流时层只看这两个小时的即时气口，不宜外推整天。"
         }
     }
 }

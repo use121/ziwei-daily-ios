@@ -108,11 +108,13 @@ final class ZiWeiCoreTests: XCTestCase {
     func testTrueSolarTimeAndLateZiHour() throws {
         var solar = input(date(1990, 5, 15, 12, 10))
         solar.useTrueSolarTime = true
+        solar.adjustForDaylightSaving = false
         let solarResolved = ChartEngine.resolveBirth(solar, timeZone: timeZone)
         XCTAssertNotEqual(solarResolved.correctionMinutes, 0)
 
         var lateZi = input(date(1990, 5, 15, 23, 10))
         lateZi.lateZiNextDay = true
+        lateZi.adjustForDaylightSaving = false
         let nextDay = ChartEngine.resolveBirth(lateZi, timeZone: timeZone)
         XCTAssertEqual(nextDay.hourBranch, 0)
         lateZi.lateZiNextDay = false
@@ -389,5 +391,129 @@ final class ZiWeiCoreTests: XCTestCase {
             XCTAssertGreaterThanOrEqual(insight.blocks.count, 3)
             XCTAssertTrue(insight.blocks.allSatisfy { !$0.body.isEmpty })
         }
+    }
+
+    // MARK: - P2 内核
+
+    func testLongevityStartBranches() {
+        XCTAssertEqual(LongevityTwelve.startBranch(bureau: .water), 8)
+        XCTAssertEqual(LongevityTwelve.startBranch(bureau: .wood), 11)
+        XCTAssertEqual(LongevityTwelve.startBranch(bureau: .metal), 5)
+        XCTAssertEqual(LongevityTwelve.startBranch(bureau: .earth), 8)
+        XCTAssertEqual(LongevityTwelve.startBranch(bureau: .fire), 2)
+    }
+
+    func testLongevitySequenceCoversAllBranches() {
+        for bureau in Element.allCases {
+            for forward in [true, false] {
+                let seq = LongevityTwelve.sequence(bureau: bureau, isForward: forward)
+                XCTAssertEqual(seq.count, 12)
+                XCTAssertEqual(Set(seq.values).count, 12, "十二神不应重复")
+                XCTAssertEqual(seq[LongevityTwelve.startBranch(bureau: bureau)], "长生")
+            }
+        }
+    }
+
+    func testMinorLimitRule() {
+        // 寅午戌起辰、申子辰起戌、巳酉丑起未、亥卯未起丑
+        XCTAssertEqual(MinorLimit.startBranch(yearBranch: 2), 4)
+        XCTAssertEqual(MinorLimit.startBranch(yearBranch: 0), 10)
+        XCTAssertEqual(MinorLimit.startBranch(yearBranch: 9), 7)
+        XCTAssertEqual(MinorLimit.startBranch(yearBranch: 3), 1)
+        // 男顺：一岁起宫，五岁前进四宫；女逆
+        XCTAssertEqual(MinorLimit.branch(yearBranch: 2, nominalAge: 5, isMale: true), 8)
+        XCTAssertEqual(MinorLimit.branch(yearBranch: 2, nominalAge: 5, isMale: false), 0)
+        XCTAssertEqual(MinorLimit.branch(yearBranch: 2, nominalAge: 1, isMale: true), 4)
+    }
+
+    func testSelfTransformationsSubsetOfFlying() throws {
+        let chart = try ChartEngine.makeChart(from: input(date(1990, 6, 15, 9, 30)), referenceDate: date(2026, 11, 8))
+        let flying = chart.flyingTransformations
+        XCTAssertEqual(flying.count, 48, "十二宫各飞四化，共 48 条")
+        let selfT = chart.selfTransformations
+        for item in selfT {
+            XCTAssertEqual(item.branch, chart.branch(of: item.star), "自化的星必须落回本宫")
+        }
+        XCTAssertEqual(selfT.count, flying.filter(\.isSelfTransformation).count)
+        // 每个宫干飞出的四化必能找到落点
+        for palace in chart.palaces {
+            XCTAssertEqual(chart.flyingTransformations(from: palace.branchIndex).count, 4)
+        }
+    }
+
+    func testDayLayerGanzhiAndPivot() throws {
+        let chart = try ChartEngine.makeChart(from: input(date(1990, 6, 15, 9, 30)), referenceDate: date(2026, 11, 8))
+        let target = date(2026, 11, 8)
+        let layer = chart.timeLayer(kind: .day, on: target)
+        let expectedIndex = Ganzhi.dayIndex(year: 2026, month: 11, day: 8)
+        XCTAssertEqual(layer.stemIndex, expectedIndex % 10)
+        XCTAssertEqual(layer.title, "\(Ganzhi.string(expectedIndex))日")
+        let lunar = ChineseCalendarConverter.lunarDate(from: target, timeZone: timeZone)
+        XCTAssertEqual(layer.pivotBranch, Ganzhi.mod(lunar.yearBranch + lunar.month - 1 + lunar.day - 1, 12))
+        XCTAssertEqual(layer.transformations.count, 4)
+    }
+
+    func testHourLayerStemAndPivot() throws {
+        let chart = try ChartEngine.makeChart(from: input(date(1990, 6, 15, 9, 30)), referenceDate: date(2026, 11, 8))
+        let target = date(2026, 11, 8, 9)
+        let layer = chart.timeLayer(kind: .hour, on: target)
+        // 巳时 = 5
+        XCTAssertEqual(layer.hourBranch, 5)
+        let dayStem = Ganzhi.dayIndex(year: 2026, month: 11, day: 8) % 10
+        let ziStem = Ganzhi.mod((dayStem % 5) * 2, 10)
+        XCTAssertEqual(layer.stemIndex, Ganzhi.mod(ziStem + 5, 10))
+        let dayLayer = chart.timeLayer(kind: .day, on: target)
+        XCTAssertEqual(layer.pivotBranch, Ganzhi.mod(dayLayer.pivotBranch + 5, 12))
+        XCTAssertEqual(layer.transformations.count, 4)
+        // 十二时支流时命宫应覆盖十二宫
+        let pivots = Set((0..<12).map { chart.timeLayer(kind: .hour, hour: $0, on: target).pivotBranch })
+        XCTAssertEqual(pivots.count, 12)
+    }
+
+    func testChinaDaylightSavingWindow() {
+        XCTAssertTrue(ChartEngine.isChinaDaylightSaving(date(1990, 6, 15), timeZone: timeZone))
+        XCTAssertTrue(ChartEngine.isChinaDaylightSaving(date(1986, 5, 4), timeZone: timeZone))
+        XCTAssertFalse(ChartEngine.isChinaDaylightSaving(date(1986, 5, 3), timeZone: timeZone))
+        XCTAssertFalse(ChartEngine.isChinaDaylightSaving(date(1991, 9, 16), timeZone: timeZone))
+        XCTAssertFalse(ChartEngine.isChinaDaylightSaving(date(1992, 6, 15), timeZone: timeZone))
+        XCTAssertFalse(ChartEngine.isChinaDaylightSaving(date(1990, 6, 15), timeZone: TimeZone(identifier: "Asia/Tokyo")!))
+    }
+
+    func testDaylightSavingAffectsHourBranch() throws {
+        // 1989-08-01 00:30 北京夏令时 → 校正后为前一日 23:30，时支从子变子但日期前移一天；
+        // 选一个时辰边界点：09:30 夏令时 → 实际 08:30，辰时而非巳时
+        var sample = input(date(1989, 8, 1, 9, 30))
+        sample.adjustForDaylightSaving = true
+        let corrected = try ChartEngine.makeChart(from: sample, referenceDate: date(2026, 11, 8))
+        XCTAssertEqual(corrected.resolvedBirth.hourBranch, 4, "夏令时校正后应为辰时")
+        sample.adjustForDaylightSaving = false
+        let raw = try ChartEngine.makeChart(from: sample, referenceDate: date(2026, 11, 8))
+        XCTAssertEqual(raw.resolvedBirth.hourBranch, 5, "不校正则为巳时")
+    }
+
+    func testLeapMonthModes() {
+        let leap = LunarDate(gregorianYear: 2020, sexagenaryYear: 37, month: 4, day: 16, isLeapMonth: true)
+        XCTAssertEqual(ChartEngine.effectiveMonth(lunar: leap, mode: .current), 4)
+        XCTAssertEqual(ChartEngine.effectiveMonth(lunar: leap, mode: .nextMonth), 5)
+        XCTAssertEqual(ChartEngine.effectiveMonth(lunar: leap, mode: .splitHalf), 5)
+        XCTAssertEqual(ChartEngine.effectiveMonth(lunar: leap, mode: .splitAccumulate), 5)
+        let early = LunarDate(gregorianYear: 2020, sexagenaryYear: 37, month: 4, day: 10, isLeapMonth: true)
+        XCTAssertEqual(ChartEngine.effectiveMonth(lunar: early, mode: .splitHalf), 4)
+        // 非闰月不受影响
+        let normal = LunarDate(gregorianYear: 2020, sexagenaryYear: 37, month: 4, day: 20, isLeapMonth: false)
+        for mode in LeapMonthMode.allCases {
+            XCTAssertEqual(ChartEngine.effectiveMonth(lunar: normal, mode: mode), 4)
+        }
+    }
+
+    func testClassicLibraryIntegrity() {
+        XCTAssertFalse(ClassicLibrary.quotes.isEmpty)
+        for quote in ClassicLibrary.quotes {
+            XCTAssertFalse(quote.original.isEmpty)
+            XCTAssertFalse(quote.plain.isEmpty)
+            XCTAssertTrue(quote.source.contains("赋") || quote.source.contains("全书"))
+        }
+        XCTAssertNotNil(ClassicLibrary.quote(for: "紫府同宫"))
+        XCTAssertNil(ClassicLibrary.quote(for: "不存在的格局"))
     }
 }

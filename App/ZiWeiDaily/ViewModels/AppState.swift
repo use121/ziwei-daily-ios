@@ -10,6 +10,19 @@ enum AppTab: Hashable {
     case input
 }
 
+/// 一份排盘档案。
+struct Profile: Codable, Equatable, Identifiable {
+    var id: UUID
+    var name: String
+    var input: BirthInput
+}
+
+/// 档案列表持久化结构。
+private struct ProfileStore: Codable {
+    var profiles: [Profile]
+    var currentID: UUID?
+}
+
 @MainActor
 final class AppState: ObservableObject {
     @Published var input: BirthInput
@@ -21,22 +34,61 @@ final class AppState: ObservableObject {
     @Published var layerYear: Int
     @Published var decadeIndex: Int?
     @Published var layerMonth: Int
+    /// 流日/流时层所用的日期，默认为今天。
+    @Published var layerDate: Date = Date()
+    /// 流时层选中的时支（nil 表示跟随当前时间）。
+    @Published var layerHourBranch: Int?
     @Published var isProUnlocked: Bool
+    @Published private(set) var profiles: [Profile] = []
+    @Published private(set) var currentProfileID: UUID?
 
     private let storageKey = "ziwei.daily.birth-input.v1"
+    private let profilesKey = "ziwei.daily.profiles.v1"
     private let proKey = "ziwei.daily.pro.v1"
+
+    private static func defaultDate() -> Date {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Shanghai")!
+        return calendar.date(from: DateComponents(year: 1995, month: 1, day: 1, hour: 12)) ?? Date()
+    }
 
     init() {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Asia/Shanghai")!
-        let defaultDate = calendar.date(from: DateComponents(year: 1995, month: 1, day: 1, hour: 12)) ?? Date()
-        var restored: BirthInput?
-        if let data = UserDefaults.standard.data(forKey: storageKey) {
+        let defaultDate = Self.defaultDate()
+
+        // 读取档案库；为空时从旧版单档案数据迁移
+        let hadSavedData = UserDefaults.standard.data(forKey: profilesKey) != nil
+            || UserDefaults.standard.data(forKey: storageKey) != nil
+        var loaded: ProfileStore?
+        if let data = UserDefaults.standard.data(forKey: profilesKey) {
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
-            restored = try? decoder.decode(BirthInput.self, from: data)
+            loaded = try? decoder.decode(ProfileStore.self, from: data)
         }
-        let initial = restored ?? BirthInput(birthDate: defaultDate)
+        if loaded?.profiles.isEmpty != false {
+            var migrated: BirthInput?
+            if let data = UserDefaults.standard.data(forKey: storageKey) {
+                let decoder = JSONDecoder()
+                decoder.dateDecodingStrategy = .iso8601
+                migrated = try? decoder.decode(BirthInput.self, from: data)
+            }
+            let seedInput = migrated ?? BirthInput(birthDate: defaultDate)
+            let seedName = seedInput.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+            let profile = Profile(
+                id: UUID(),
+                name: seedName.isEmpty ? "档案一" : seedName,
+                input: seedInput
+            )
+            loaded = ProfileStore(profiles: [profile], currentID: profile.id)
+        }
+
+        let store = loaded!
+        profiles = store.profiles
+        let current = store.profiles.first(where: { $0.id == store.currentID }) ?? store.profiles[0]
+        currentProfileID = current.id
+        let initial = current.input
+
         input = initial
         layerYear = Calendar.current.component(.year, from: Date())
         layerMonth = Calendar(identifier: .chinese).component(.month, from: Date())
@@ -63,6 +115,10 @@ final class AppState: ObservableObject {
                 selectedLayer = .year
             case "month":
                 selectedLayer = .month
+            case "day":
+                selectedLayer = .day
+            case "hour":
+                selectedLayer = .hour
             default:
                 break
             }
@@ -75,7 +131,7 @@ final class AppState: ObservableObject {
             return
         }
         #endif
-        if restored != nil, let restoredChart = try? ChartEngine.makeChart(from: initial) {
+        if hadSavedData, let restoredChart = try? ChartEngine.makeChart(from: initial) {
             chart = restoredChart
             report = FortuneEngine.report(for: restoredChart)
             selectedTab = .today
@@ -91,6 +147,7 @@ final class AppState: ObservableObject {
             report = FortuneEngine.report(for: generated)
             decadeIndex = nil
             issues = []
+            syncCurrentProfile()
             persist()
             selectedTab = .today
             UINotificationFeedbackGenerator().notificationOccurred(.success)
@@ -109,16 +166,80 @@ final class AppState: ObservableObject {
 
     func clearLocalData() {
         UserDefaults.standard.removeObject(forKey: storageKey)
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: "Asia/Shanghai")!
-        let defaultDate = calendar.date(from: DateComponents(year: 1995, month: 1, day: 1, hour: 12)) ?? Date()
-        input = BirthInput(birthDate: defaultDate)
+        UserDefaults.standard.removeObject(forKey: profilesKey)
+        let profile = Profile(id: UUID(), name: "档案一", input: BirthInput(birthDate: Self.defaultDate()))
+        profiles = [profile]
+        currentProfileID = profile.id
+        input = profile.input
         selectedLayer = .natal
         decadeIndex = nil
         chart = nil
         report = nil
         issues = []
         selectedTab = .input
+    }
+
+    // MARK: - 档案管理
+
+    var currentProfileName: String {
+        profiles.first(where: { $0.id == currentProfileID })?.name ?? "档案"
+    }
+
+    /// 新建一份空白档案并切换过去。
+    func addProfile() {
+        syncCurrentProfile()
+        let profile = Profile(
+            id: UUID(),
+            name: "档案 \(profiles.count + 1)",
+            input: BirthInput(birthDate: Self.defaultDate())
+        )
+        profiles.append(profile)
+        switchTo(profile.id, regenerate: false)
+    }
+
+    /// 删除当前档案（至少保留一份）。
+    func deleteCurrentProfile() {
+        guard let currentProfileID, profiles.count > 1,
+              let index = profiles.firstIndex(where: { $0.id == currentProfileID }) else { return }
+        profiles.remove(at: index)
+        switchTo(profiles[min(index, profiles.count - 1)].id, regenerate: true)
+    }
+
+    /// 切换档案：先保存当前编辑内容，再载入目标档案并重新排盘。
+    func selectProfile(_ id: UUID) {
+        guard id != currentProfileID else { return }
+        syncCurrentProfile()
+        switchTo(id, regenerate: true)
+    }
+
+    private func switchTo(_ id: UUID, regenerate: Bool) {
+        guard let profile = profiles.first(where: { $0.id == id }) else { return }
+        currentProfileID = profile.id
+        input = profile.input
+        issues = []
+        decadeIndex = nil
+        resetLayer()
+        if regenerate, let generated = try? ChartEngine.makeChart(from: input) {
+            chart = generated
+            report = FortuneEngine.report(for: generated)
+            selectedTab = .today
+        } else {
+            chart = nil
+            report = nil
+            selectedTab = .input
+        }
+        persist()
+    }
+
+    /// 把当前编辑中的 input 写回当前档案；称呼非空时同步档案名。
+    private func syncCurrentProfile() {
+        guard let currentProfileID,
+              let index = profiles.firstIndex(where: { $0.id == currentProfileID }) else { return }
+        profiles[index].input = input
+        let name = input.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !name.isEmpty {
+            profiles[index].name = name
+        }
     }
 
     // MARK: - 时间层
@@ -129,7 +250,9 @@ final class AppState: ObservableObject {
             kind: selectedLayer,
             decadeIndex: decadeIndex,
             year: layerYear,
-            month: layerMonth
+            month: layerMonth,
+            hour: selectedLayer == .hour ? layerHourBranch : nil,
+            on: selectedLayer == .day || selectedLayer == .hour ? layerDate : Date()
         )
     }
 
@@ -189,6 +312,13 @@ final class AppState: ObservableObject {
             if month < 1 { month = 12; layerYear -= 1 }
             if month > 12 { month = 1; layerYear += 1 }
             layerMonth = month
+        case .day:
+            layerDate = Calendar(identifier: .gregorian).date(byAdding: .day, value: delta, to: layerDate) ?? layerDate
+        case .hour:
+            let current = layerHourBranch ?? ChineseCalendarConverter.hourBranch(
+                hour: Calendar.current.component(.hour, from: Date())
+            )
+            layerHourBranch = Ganzhi.mod(current + delta, 12)
         }
     }
 
@@ -197,6 +327,8 @@ final class AppState: ObservableObject {
         decadeIndex = nil
         layerYear = Calendar.current.component(.year, from: Date())
         layerMonth = Calendar(identifier: .chinese).component(.month, from: Date())
+        layerDate = Date()
+        layerHourBranch = nil
     }
 
     func setProUnlocked(_ value: Bool) {
@@ -260,8 +392,9 @@ final class AppState: ObservableObject {
     private func persist() {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
-        if let data = try? encoder.encode(input) {
-            UserDefaults.standard.set(data, forKey: storageKey)
+        let store = ProfileStore(profiles: profiles, currentID: currentProfileID)
+        if let data = try? encoder.encode(store) {
+            UserDefaults.standard.set(data, forKey: profilesKey)
         }
     }
 }

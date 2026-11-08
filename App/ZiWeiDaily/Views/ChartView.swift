@@ -6,9 +6,15 @@ private struct BranchSelection: Identifiable {
     var id: Int { branch }
 }
 
+private struct PosterShareItem: Identifiable {
+    let id = UUID()
+    let image: UIImage
+}
+
 struct ChartView: View {
     @EnvironmentObject private var state: AppState
     @State private var selection: BranchSelection?
+    @State private var posterShare: PosterShareItem?
 
     var body: some View {
         NavigationStack {
@@ -42,6 +48,12 @@ struct ChartView: View {
                             summaryItem("博士十二神", chart.doctoralSequence[layer.pivotBranch] ?? "—")
                         }
 
+                        HStack(spacing: 10) {
+                            summaryItem("小限（\(chart.nominalAge()) 岁）", Ganzhi.branches[chart.minorLimitBranch])
+                            summaryItem("命宫长生", chart.longevitySequence[chart.lifeBranch] ?? "—")
+                            summaryItem("自化", chart.selfTransformations.isEmpty ? "无" : "\(chart.selfTransformations.count) 处")
+                        }
+
                         transformationCard(chart: chart, layer: layer)
                         patternCard(layer: layer)
                             .id("patterns")
@@ -65,13 +77,35 @@ struct ChartView: View {
                 }
                 .background(Theme.paper)
                 .navigationTitle("紫微命盘")
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            exportPoster(chart: chart, layer: layer)
+                        } label: {
+                            Image(systemName: "photo.on.rectangle.angled")
+                                .foregroundStyle(Theme.cinnabar)
+                        }
+                        .accessibilityLabel("导出长图")
+                    }
+                }
                 .sheet(item: $selection) { item in
                     PalaceDetailView(chart: chart, layer: layer, branch: item.branch)
                 }
+                .sheet(item: $posterShare) { item in
+                    ActivityView(items: [item.image])
+                        .presentationDetents([.medium, .large])
+                }
                 #if DEBUG
                 .onAppear {
-                    if ProcessInfo.processInfo.environment["ZIWEI_DETAIL"] == "1", selection == nil {
+                    let detailEnv = ProcessInfo.processInfo.environment["ZIWEI_DETAIL"]
+                    if detailEnv != nil, detailEnv != "0", selection == nil {
                         selection = BranchSelection(branch: layer.pivotBranch)
+                    }
+                    if ProcessInfo.processInfo.environment["ZIWEI_POSTER"] == "1",
+                       let image = PosterExporter.render(chart: chart, layer: layer),
+                       let data = image.pngData(),
+                       let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+                        try? data.write(to: dir.appendingPathComponent("poster.png"))
                     }
                 }
                 #endif
@@ -155,6 +189,25 @@ struct ChartView: View {
                         Text(pattern.summary)
                             .font(.caption)
                             .foregroundStyle(Theme.secondaryInk)
+                        if let quote = ClassicLibrary.quote(for: pattern.name) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack(spacing: 6) {
+                                    Text("「\(quote.original)」")
+                                        .font(.system(.caption, design: .serif))
+                                        .foregroundStyle(Theme.cinnabar)
+                                    Text(quote.source)
+                                        .font(.caption2)
+                                        .foregroundStyle(Theme.secondaryInk)
+                                }
+                                Text(quote.plain)
+                                    .font(.caption2)
+                                    .foregroundStyle(Theme.secondaryInk)
+                            }
+                            .padding(9)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Theme.goldLight.opacity(0.3))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                        }
                     }
                     .padding(.vertical, 2)
                     if pattern.id != patterns.last?.id {
@@ -184,14 +237,18 @@ struct ChartView: View {
             infoRow("命主 / 身主", "\(chart.soulMaster.rawValue) / \(chart.bodyMaster.rawValue)")
             infoRow("大限", chart.isForwardDecade ? "顺行" : "逆行")
             infoRow("当前虚岁", "\(chart.nominalAge()) 岁")
+            infoRow("小限", "\(Ganzhi.branches[chart.minorLimitBranch])宫（\(chart.palaceKind(at: chart.minorLimitBranch, pivot: chart.lifeBranch).rawValue)）")
             if let decade = layer.decade {
                 infoRow("所选大限", decade.rangeText)
             }
             if chart.input.useTrueSolarTime {
                 infoRow("真太阳时", "已校正 \(chart.resolvedBirth.correctionMinutes) 分钟")
             }
+            if chart.resolvedBirth.appliedDaylightSaving {
+                infoRow("夏令时", "出生时间处于 1986–1991 夏令时，已回拨 1 小时")
+            }
             if chart.resolvedBirth.lunarDate.isLeapMonth {
-                Text("闰月安紫微：以对应正一月天数加闰月日数；命身宫按闰月本月计算。")
+                Text("闰月口径：\(chart.input.leapMonthMode.rawValue)。\(chart.input.leapMonthMode.note)。")
                     .font(.caption)
                     .foregroundStyle(Theme.secondaryInk)
             }
@@ -246,6 +303,11 @@ struct ChartView: View {
     }
 
     // MARK: - 小工具
+
+    private func exportPoster(chart: Chart, layer: TimeLayer) {
+        guard let image = PosterExporter.render(chart: chart, layer: layer) else { return }
+        posterShare = PosterShareItem(image: image)
+    }
 
     private func starSummary(chart: Chart, branch: Int) -> String {
         let palace = chart.palace(at: branch)
@@ -369,6 +431,9 @@ private struct PalaceGrid: View {
         let isLife = kind == .life
 
         let marks = layer.transformations.filter { chart.branch(of: $0.star) == branch }
+        let selfMarks = chart.selfTransformations(at: branch)
+        let longevity = chart.longevitySequence[branch]
+        let isMinorLimit = branch == chart.minorLimitBranch
 
         return VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 3) {
@@ -378,6 +443,10 @@ private struct PalaceGrid: View {
                 if palace.branchIndex == chart.bodyBranch {
                     Text("身").font(.system(size: 8)).foregroundStyle(.white)
                         .padding(2).background(Theme.jade).clipShape(Circle())
+                }
+                if isMinorLimit {
+                    Text("限").font(.system(size: 8)).foregroundStyle(.white)
+                        .padding(2).background(Theme.gold).clipShape(Circle())
                 }
                 Spacer(minLength: 0)
                 Text(Ganzhi.branches[branch]).font(.system(size: 9)).foregroundStyle(Theme.secondaryInk)
@@ -408,7 +477,22 @@ private struct PalaceGrid: View {
                         .background(Theme.transformationColor(item.kind))
                         .clipShape(RoundedRectangle(cornerRadius: 3))
                 }
+                ForEach(selfMarks) { item in
+                    Text("自")
+                        .font(.system(size: 7, weight: .bold))
+                        .foregroundStyle(Theme.transformationColor(item.kind))
+                        .frame(width: 13, height: 13)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 3)
+                                .stroke(Theme.transformationColor(item.kind), lineWidth: 0.8)
+                        }
+                }
                 Spacer(minLength: 0)
+                if let longevity {
+                    Text(longevity)
+                        .font(.system(size: 8))
+                        .foregroundStyle(Theme.gold)
+                }
                 Text("\(palace.decadeStart)")
                     .font(.system(size: 8))
                     .foregroundStyle(Theme.secondaryInk)
@@ -453,6 +537,7 @@ private struct PalaceDetailView: View {
 
     var body: some View {
         NavigationStack {
+            ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     VStack(alignment: .leading, spacing: 7) {
@@ -462,6 +547,12 @@ private struct PalaceDetailView: View {
                                 .foregroundStyle(Theme.cinnabar)
                             if palace.branchIndex == chart.bodyBranch {
                                 TagPill(text: "身宫", color: Theme.jade)
+                            }
+                            if branch == chart.minorLimitBranch {
+                                TagPill(text: "小限", color: Theme.gold)
+                            }
+                            if let longevity = chart.longevitySequence[branch] {
+                                TagPill(text: longevity, color: Theme.azurite)
                             }
                         }
                         Text(kind.focus).font(.subheadline).foregroundStyle(Theme.secondaryInk)
@@ -488,6 +579,15 @@ private struct PalaceDetailView: View {
                     ForEach(insight.blocks) { block in
                         detailSection(block.heading) {
                             Text(block.body)
+                        }
+                    }
+
+                    flyingSection
+                        .id("flying")
+
+                    if let longevity = chart.longevitySequence[branch] {
+                        detailSection("长生十二神") {
+                            Text("本宫逢「\(longevity)」。\(LongevityTwelve.note(longevity))。")
                         }
                     }
 
@@ -533,6 +633,16 @@ private struct PalaceDetailView: View {
                 }
                 .padding(20)
             }
+            #if DEBUG
+            .onAppear {
+                if ProcessInfo.processInfo.environment["ZIWEI_DETAIL"] == "flying" {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                        proxy.scrollTo("flying", anchor: .top)
+                    }
+                }
+            }
+            #endif
+            }
             .background(Theme.paper)
             .navigationTitle("宫位详情")
             .navigationBarTitleDisplayMode(.inline)
@@ -548,5 +658,40 @@ private struct PalaceDetailView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .ziWeiCard()
+    }
+
+    /// 宫干飞化：本宫天干飞出的四化及其落点，落回本宫标为自化。
+    @ViewBuilder
+    private var flyingSection: some View {
+        let entries = chart.flyingTransformations(from: branch)
+        detailSection("宫干飞化 · \(Ganzhi.stems[palace.stemIndex])干") {
+            VStack(alignment: .leading, spacing: 9) {
+                ForEach(entries) { entry in
+                    let targetKind = chart.palaceKind(at: entry.targetBranch, pivot: layer.pivotBranch)
+                    HStack(spacing: 8) {
+                        Text(entry.kind.rawValue)
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(Theme.transformationColor(entry.kind))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Theme.transformationColor(entry.kind).opacity(0.12))
+                            .clipShape(Capsule())
+                        Text(entry.star.rawValue)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(Theme.ink)
+                        Text("→ \(targetKind.rawValue) · \(Ganzhi.branches[entry.targetBranch])")
+                            .font(.caption)
+                            .foregroundStyle(Theme.secondaryInk)
+                        if entry.isSelfTransformation {
+                            TagPill(text: "自化", color: Theme.cinnabar)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                }
+                Text("自化表示这股能量在本宫内部消化：自化禄易流失、自化忌多纠结，解读时先看落宫再看是否回本。")
+                    .font(.caption)
+                    .foregroundStyle(Theme.secondaryInk)
+            }
+        }
     }
 }

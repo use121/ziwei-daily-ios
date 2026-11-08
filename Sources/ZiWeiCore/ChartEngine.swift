@@ -6,18 +6,20 @@ public enum ChartEngine {
         let timeZone = ChineseCalendarConverter.timeZone(for: input.timeZoneIdentifier)
         let resolved = resolveBirth(input, timeZone: timeZone)
         let lunar = resolved.lunarDate
-        let monthBranch = 2 + lunar.month - 1
+        let effectiveMonth = Self.effectiveMonth(lunar: lunar, mode: input.leapMonthMode)
+        let monthBranch = Ganzhi.mod(2 + effectiveMonth - 1, 12)
         let lifeBranch = Ganzhi.mod(monthBranch - resolved.hourBranch, 12)
         let bodyBranch = Ganzhi.mod(monthBranch + resolved.hourBranch, 12)
         let yinStem = Ganzhi.mod((lunar.yearStem % 5) * 2 + 2, 10)
         let lifeStem = Ganzhi.mod(yinStem + Ganzhi.mod(lifeBranch - 2, 12), 10)
         let bureau = bureauElement(stem: lifeStem, branch: lifeBranch)
-        let effectiveDay = effectiveLunarDay(for: resolved, timeZone: timeZone)
+        let effectiveDay = effectiveLunarDay(for: resolved, timeZone: timeZone, mode: input.leapMonthMode)
         var placements = mainStarPlacements(lunarDay: effectiveDay, bureauNumber: bureau.bureauNumber)
         AuxiliaryStars.placements(
             lunar: lunar,
             hourBranch: resolved.hourBranch,
-            lifeBranch: lifeBranch
+            lifeBranch: lifeBranch,
+            monthOverride: effectiveMonth
         ).forEach { placements[$0.key] = $0.value }
         let birthTransformations = transformations(for: lunar.yearStem, source: .birth)
         let forward = (lunar.yearStem % 2 == 0 && input.gender == .male) || (lunar.yearStem % 2 == 1 && input.gender == .female)
@@ -69,6 +71,11 @@ public enum ChartEngine {
             let value = (longitude - standardMeridian) * 4.0 + ChineseCalendarConverter.equationOfTimeMinutes(dayOfYear: dayOfYear)
             correction = Int(value.rounded())
         }
+        // 1986–1991 年国内实行夏令时，钟表拨快一小时，排盘需减回
+        let appliedDST = input.adjustForDaylightSaving && isChinaDaylightSaving(input.birthDate, timeZone: timeZone)
+        if appliedDST {
+            correction -= 60
+        }
         let adjusted = input.birthDate.addingTimeInterval(TimeInterval(correction * 60))
         let components = ChineseCalendarConverter.gregorianComponents(adjusted, timeZone: timeZone)
         let hour = components.hour ?? 12
@@ -76,7 +83,7 @@ public enum ChartEngine {
         let useNextDay = input.lateZiNextDay && hour == 23
         let lunarBase = useNextDay ? adjusted.addingTimeInterval(86_400) : adjusted
         let lunar = ChineseCalendarConverter.lunarDate(from: lunarBase, timeZone: timeZone)
-        return ResolvedBirth(adjustedDate: adjusted, lunarDate: lunar, hourBranch: hourBranch, correctionMinutes: correction)
+        return ResolvedBirth(adjustedDate: adjusted, lunarDate: lunar, hourBranch: hourBranch, correctionMinutes: correction, appliedDaylightSaving: appliedDST)
     }
 
     public static func bureauElement(stem: Int, branch: Int) -> Element {
@@ -127,15 +134,58 @@ public enum ChartEngine {
         }
     }
 
-    private static func effectiveLunarDay(for resolved: ResolvedBirth, timeZone: TimeZone) -> Int {
+    /// 闰月参与排盘的有效月份（非闰月恒等于本月）。
+    public static func effectiveMonth(lunar: LunarDate, mode: LeapMonthMode) -> Int {
+        guard lunar.isLeapMonth else { return lunar.month }
+        switch mode {
+        case .current:
+            return lunar.month
+        case .nextMonth:
+            return min(12, lunar.month + 1)
+        case .splitHalf, .splitAccumulate:
+            return lunar.day <= 15 ? lunar.month : min(12, lunar.month + 1)
+        }
+    }
+
+    /// 1986–1991 国内夏令时窗口（起始日凌晨 2 点拨快，结束日凌晨 2 点拨回）。
+    public static func isChinaDaylightSaving(_ date: Date, timeZone: TimeZone) -> Bool {
+        guard timeZone.identifier == "Asia/Shanghai" else { return false }
+        let c = ChineseCalendarConverter.gregorianComponents(date, timeZone: timeZone)
+        guard let year = c.year, let month = c.month, let day = c.day else { return false }
+        let windows: [Int: ((Int, Int), (Int, Int))] = [
+            1986: ((5, 4), (9, 14)),
+            1987: ((4, 12), (9, 13)),
+            1988: ((4, 10), (9, 11)),
+            1989: ((4, 16), (9, 17)),
+            1990: ((4, 15), (9, 16)),
+            1991: ((4, 14), (9, 15))
+        ]
+        guard let (start, end) = windows[year] else { return false }
+        let stamp = month * 100 + day
+        return stamp >= start.0 * 100 + start.1 && stamp <= end.0 * 100 + end.1
+    }
+
+    /// 安紫微所用的日数：闰月按所选口径决定是否累计上一正一月天数。
+    private static func effectiveLunarDay(for resolved: ResolvedBirth, timeZone: TimeZone, mode: LeapMonthMode) -> Int {
         let lunar = resolved.lunarDate
         guard lunar.isLeapMonth else { return lunar.day }
+        switch mode {
+        case .nextMonth:
+            return lunar.day
+        case .splitHalf where lunar.day > 15:
+            return lunar.day - 15
+        case .splitHalf, .current, .splitAccumulate:
+            return previousMonthDayCount(for: resolved, timeZone: timeZone) + lunar.day
+        }
+    }
+
+    private static func previousMonthDayCount(for resolved: ResolvedBirth, timeZone: TimeZone) -> Int {
         var chinese = Calendar(identifier: .chinese)
         chinese.timeZone = timeZone
         guard let previousMonth = chinese.date(byAdding: .month, value: -1, to: resolved.adjustedDate),
               let count = chinese.range(of: .day, in: .month, for: previousMonth)?.count else {
-            return 29 + lunar.day
+            return 29
         }
-        return count + lunar.day
+        return count
     }
 }
