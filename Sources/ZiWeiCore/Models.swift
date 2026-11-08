@@ -104,6 +104,20 @@ public enum Star: String, Codable, CaseIterable, Sendable {
     case tianMa = "天马"
     case hongLuan = "红鸾"
     case tianXi = "天喜"
+    case huoXing = "火星"
+    case lingXing = "铃星"
+    case tianYao = "天姚"
+    case tianXing = "天刑"
+    case sanTai = "三台"
+    case baZuo = "八座"
+    case enGuang = "恩光"
+    case tianGui = "天贵"
+    case longChi = "龙池"
+    case fengGe = "凤阁"
+    case tianKu = "天哭"
+    case tianXu = "天虚"
+    case tianShang = "天伤"
+    case tianShi = "天使"
 
     public static let mainStars: [Star] = [
         .ziWei, .tianJi, .taiYang, .wuQu, .tianTong, .lianZhen,
@@ -135,6 +149,7 @@ public enum TransformationSource: String, Codable, Sendable {
     case birth = "生年"
     case decade = "大限"
     case year = "流年"
+    case month = "流月"
     case day = "流日"
 }
 

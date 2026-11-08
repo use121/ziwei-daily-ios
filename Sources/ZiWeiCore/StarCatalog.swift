@@ -31,6 +31,14 @@ public enum StarCatalog {
         case .diKong, .diJie: .init(keyword: "变动与落空", action: "先验证再投入，保留弹性", caution: "避免凭空预期和冲动承诺", weight: -2)
         case .tianMa: .init(keyword: "行动与流动", action: "适合出行、走动与处理外部事务", caution: "行程预留缓冲", weight: 0)
         case .hongLuan, .tianXi: .init(keyword: "愉悦与联结", action: "真诚表达善意，安排轻松互动", caution: "不把短暂情绪当作长期承诺", weight: 1)
+        case .huoXing, .lingXing: .init(keyword: "爆发与急促", action: "把冲劲用在明确的短期目标上", caution: "避免急中出错，留出冷静时间", weight: -1)
+        case .tianYao: .init(keyword: "感受与魅力", action: "适合社交表达与审美相关的事", caution: "别让情绪牵动判断", weight: 1)
+        case .tianXing: .init(keyword: "纪律与自律", action: "制定规则，适合处理需要约束力的事", caution: "对自己别过于严苛", weight: 0)
+        case .sanTai, .baZuo: .init(keyword: "条理与位阶", action: "整理秩序、明确分工", caution: "形式感不能替代实际推进", weight: 1)
+        case .enGuang, .tianGui: .init(keyword: "礼遇与荣显", action: "适合争取认可、参与评比或对外交流", caution: "荣誉之外把实事做扎实", weight: 1)
+        case .longChi, .fengGe: .init(keyword: "才艺与雅致", action: "适合创作、审美与精细工作", caution: "别在不重要的细节上过度打磨", weight: 1)
+        case .tianKu, .tianXu: .init(keyword: "情绪与虚耗", action: "先照顾情绪，把能做的事做小做实", caution: "避免自怜与过度担忧", weight: -1)
+        case .tianShang, .tianShi: .init(keyword: "劳损与提醒", action: "注意休息与身体信号，别硬扛", caution: "小病小痛别拖", weight: -1)
         }
     }
 }

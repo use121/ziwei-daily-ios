@@ -20,6 +20,7 @@ final class AppState: ObservableObject {
     @Published var selectedLayer: TimeLayerKind = .natal
     @Published var layerYear: Int
     @Published var decadeIndex: Int?
+    @Published var layerMonth: Int
     @Published var isProUnlocked: Bool
 
     private let storageKey = "ziwei.daily.birth-input.v1"
@@ -38,6 +39,7 @@ final class AppState: ObservableObject {
         let initial = restored ?? BirthInput(birthDate: defaultDate)
         input = initial
         layerYear = Calendar.current.component(.year, from: Date())
+        layerMonth = Calendar(identifier: .chinese).component(.month, from: Date())
         isProUnlocked = UserDefaults.standard.object(forKey: proKey) as? Bool ?? true
         #if DEBUG
         let environment = ProcessInfo.processInfo.environment
@@ -59,6 +61,8 @@ final class AppState: ObservableObject {
                 if let sampleChart { decadeIndex = sampleChart.currentDecadeIndex(age: sampleChart.nominalAge()) }
             case "year":
                 selectedLayer = .year
+            case "month":
+                selectedLayer = .month
             default:
                 break
             }
@@ -121,12 +125,40 @@ final class AppState: ObservableObject {
 
     var currentLayer: TimeLayer? {
         guard let chart else { return nil }
-        return chart.timeLayer(kind: selectedLayer, decadeIndex: decadeIndex, year: layerYear)
+        return chart.timeLayer(
+            kind: selectedLayer,
+            decadeIndex: decadeIndex,
+            year: layerYear,
+            month: layerMonth
+        )
     }
 
     var insights: [Insight] {
         guard let chart, let layer = currentLayer else { return [] }
         return InsightEngine.insights(for: chart, layer: layer)
+    }
+
+    /// 当前层的格局组合。
+    var patterns: [Pattern] {
+        guard let chart, let layer = currentLayer else { return [] }
+        return PatternEngine.patterns(for: chart, layer: layer)
+    }
+
+    /// 当前层的四化落点。
+    var transformEntries: [TransformEntry] {
+        guard let chart, let layer = currentLayer else { return [] }
+        return TransformationPathEngine.entries(chart: chart, layer: layer)
+    }
+
+    var transformSummary: String {
+        guard let chart, let layer = currentLayer else { return "" }
+        return TransformationPathEngine.summary(chart: chart, layer: layer)
+    }
+
+    /// 十三维强弱评分，供雷达图使用。
+    var topicScores: [TopicScore] {
+        guard let chart, let layer = currentLayer else { return [] }
+        return TopicScoreEngine.scores(chart: chart, layer: layer)
     }
 
     var currentDecade: DecadeSlot? {
@@ -152,6 +184,11 @@ final class AppState: ObservableObject {
             decadeIndex = min(max(current + delta, 0), slots.count - 1)
         case .year:
             layerYear += delta
+        case .month:
+            var month = layerMonth + delta
+            if month < 1 { month = 12; layerYear -= 1 }
+            if month > 12 { month = 1; layerYear += 1 }
+            layerMonth = month
         }
     }
 
@@ -159,6 +196,7 @@ final class AppState: ObservableObject {
         selectedLayer = .natal
         decadeIndex = nil
         layerYear = Calendar.current.component(.year, from: Date())
+        layerMonth = Calendar(identifier: .chinese).component(.month, from: Date())
     }
 
     func setProUnlocked(_ value: Bool) {
@@ -178,6 +216,45 @@ final class AppState: ObservableObject {
         流日：\(report.dayGanzhi)，落于\(chart.palace(at: report.activeBranch).kind.rawValue)。
         传统文化参考，不构成专业决策建议。
         """
+    }
+
+    /// 全盘报告：命盘摘要 + 十三维 + 格局 + 四化。
+    var fullReportText: String {
+        guard let chart, let layer = currentLayer else { return "" }
+        let name = input.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let title = name.isEmpty ? "我的紫微命盘" : "\(name)的紫微命盘"
+        var lines: [String] = []
+        lines.append(title)
+        lines.append("\(layer.kind.rawValue)：\(layer.title)")
+        lines.append("阳历 \(chart.resolvedBirth.lunarDate.gregorianYear) 年 · 农历 \(chart.resolvedBirth.lunarDate.displayText) · \(chart.bureau.bureauName)")
+        lines.append("命宫在\(Ganzhi.branches[chart.lifeBranch])｜身宫在\(Ganzhi.branches[chart.bodyBranch])｜命主\(chart.soulMaster.rawValue)｜身主\(chart.bodyMaster.rawValue)")
+        lines.append("")
+        lines.append("【十三维】")
+        for score in topicScores {
+            lines.append("\(score.topic.rawValue) \(score.score)")
+        }
+        if !patterns.isEmpty {
+            lines.append("")
+            lines.append("【格局】")
+            for pattern in patterns {
+                lines.append("\(pattern.name)（\(pattern.kind.rawValue)）：\(pattern.summary)")
+            }
+        }
+        lines.append("")
+        lines.append("【四化】")
+        lines.append(transformSummary)
+        for entry in transformEntries {
+            lines.append("· \(entry.text)")
+        }
+        lines.append("")
+        lines.append("【今日】")
+        if let report {
+            lines.append("\(report.score)/100 · \(report.status)")
+            lines.append(report.summary)
+        }
+        lines.append("")
+        lines.append("传统文化参考，不构成任何决策依据。")
+        return lines.joined(separator: "\n")
     }
 
     private func persist() {

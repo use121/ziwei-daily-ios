@@ -13,6 +13,7 @@ struct ChartView: View {
     var body: some View {
         NavigationStack {
             if let chart = state.chart, let layer = state.currentLayer {
+                ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
                         header(chart, layer: layer)
@@ -35,7 +36,15 @@ struct ChartView: View {
                             summaryItem("五行局", chart.bureau.bureauName)
                         }
 
+                        HStack(spacing: 10) {
+                            summaryItem("命主", chart.soulMaster.rawValue)
+                            summaryItem("身主", chart.bodyMaster.rawValue)
+                            summaryItem("博士十二神", chart.doctoralSequence[layer.pivotBranch] ?? "—")
+                        }
+
                         transformationCard(chart: chart, layer: layer)
+                        patternCard(layer: layer)
+                            .id("patterns")
                         infoCard(chart: chart, layer: layer)
                         palaceList(chart: chart, layer: layer)
 
@@ -43,6 +52,16 @@ struct ChartView: View {
                     }
                     .padding(18)
                     .padding(.bottom, 28)
+                }
+                #if DEBUG
+                .onAppear {
+                    if ProcessInfo.processInfo.environment["ZIWEI_SCROLL"] == "patterns" {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                            proxy.scrollTo("patterns", anchor: .top)
+                        }
+                    }
+                }
+                #endif
                 }
                 .background(Theme.paper)
                 .navigationTitle("紫微命盘")
@@ -108,12 +127,61 @@ struct ChartView: View {
         .ziWeiCard()
     }
 
+    @ViewBuilder
+    private func patternCard(layer: TimeLayer) -> some View {
+        let patterns = state.patterns
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeading(
+                title: "格局",
+                subtitle: patterns.isEmpty ? "\(layer.kind.rawValue)层未见经典格局" : "共 \(patterns.count) 组，按\u{201C}吉\u{201D}与\u{201C}留意\u{201D}分类"
+            )
+            if patterns.isEmpty {
+                Text("这张盘的结构不属于常见成格组合，按十四主星与四化逐宫来看更准确。")
+                    .font(.callout)
+                    .foregroundStyle(Theme.secondaryInk)
+            } else {
+                ForEach(patterns) { pattern in
+                    VStack(alignment: .leading, spacing: 5) {
+                        HStack(spacing: 7) {
+                            Text(pattern.name)
+                                .font(.system(.subheadline, design: .serif, weight: .semibold))
+                                .foregroundStyle(Theme.ink)
+                            TagPill(text: pattern.kind.rawValue, color: patternColor(pattern.kind))
+                            Spacer()
+                            Text(pattern.branchText)
+                                .font(.caption2)
+                                .foregroundStyle(Theme.secondaryInk)
+                        }
+                        Text(pattern.summary)
+                            .font(.caption)
+                            .foregroundStyle(Theme.secondaryInk)
+                    }
+                    .padding(.vertical, 2)
+                    if pattern.id != patterns.last?.id {
+                        Divider().overlay(Theme.line.opacity(0.4))
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .ziWeiCard()
+    }
+
+    private func patternColor(_ kind: PatternKind) -> Color {
+        switch kind {
+        case .auspicious: Theme.jade
+        case .neutral: Theme.gold
+        case .caution: Theme.cinnabar
+        }
+    }
+
     private func infoCard(chart: Chart, layer: TimeLayer) -> some View {
         VStack(alignment: .leading, spacing: 13) {
             SectionHeading(title: "排盘信息", subtitle: chart.input.birthplace)
             infoRow("公历", birthText(chart))
             infoRow("农历", chart.resolvedBirth.lunarDate.displayText)
             infoRow("时辰", "\(Ganzhi.branches[chart.resolvedBirth.hourBranch])时（\(hourText(chart))）")
+            infoRow("命主 / 身主", "\(chart.soulMaster.rawValue) / \(chart.bodyMaster.rawValue)")
             infoRow("大限", chart.isForwardDecade ? "顺行" : "逆行")
             infoRow("当前虚岁", "\(chart.nominalAge()) 岁")
             if let decade = layer.decade {

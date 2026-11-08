@@ -14,7 +14,11 @@ public enum ChartEngine {
         let bureau = bureauElement(stem: lifeStem, branch: lifeBranch)
         let effectiveDay = effectiveLunarDay(for: resolved, timeZone: timeZone)
         var placements = mainStarPlacements(lunarDay: effectiveDay, bureauNumber: bureau.bureauNumber)
-        auxiliaryPlacements(lunar: lunar, hourBranch: resolved.hourBranch).forEach { placements[$0.key] = $0.value }
+        AuxiliaryStars.placements(
+            lunar: lunar,
+            hourBranch: resolved.hourBranch,
+            lifeBranch: lifeBranch
+        ).forEach { placements[$0.key] = $0.value }
         let birthTransformations = transformations(for: lunar.yearStem, source: .birth)
         let forward = (lunar.yearStem % 2 == 0 && input.gender == .male) || (lunar.yearStem % 2 == 1 && input.gender == .female)
         let direction = forward ? 1 : -1
@@ -133,41 +137,5 @@ public enum ChartEngine {
             return 29 + lunar.day
         }
         return count + lunar.day
-    }
-
-    private static func auxiliaryPlacements(lunar: LunarDate, hourBranch: Int) -> [Star: Int] {
-        let monthOffset = lunar.month - 1
-        var result: [Star: Int] = [
-            .wenChang: Ganzhi.mod(10 - hourBranch, 12),
-            .wenQu: Ganzhi.mod(4 + hourBranch, 12),
-            .zuoFu: Ganzhi.mod(4 + monthOffset, 12),
-            .youBi: Ganzhi.mod(10 - monthOffset, 12),
-            .diKong: Ganzhi.mod(11 - hourBranch, 12),
-            .diJie: Ganzhi.mod(11 + hourBranch, 12)
-        ]
-        switch lunar.yearStem {
-        case 0, 4, 6: result[.tianKui] = 1; result[.tianYue] = 7
-        case 1, 5: result[.tianKui] = 0; result[.tianYue] = 8
-        case 2, 3: result[.tianKui] = 11; result[.tianYue] = 9
-        case 7: result[.tianKui] = 6; result[.tianYue] = 2
-        default: result[.tianKui] = 3; result[.tianYue] = 5
-        }
-        let luBranches = [2, 3, 5, 5, 6, 6, 8, 9, 11, 0]
-        let lu = luBranches[lunar.yearStem]
-        result[.luCun] = lu
-        result[.qingYang] = Ganzhi.mod(lu + 1, 12)
-        result[.tuoLuo] = Ganzhi.mod(lu - 1, 12)
-        let horseByGroup = [8, 2, 11, 5]
-        let branchGroup: Int
-        switch lunar.yearBranch {
-        case 2, 6, 10: branchGroup = 0
-        case 8, 0, 4: branchGroup = 1
-        case 5, 9, 1: branchGroup = 2
-        default: branchGroup = 3
-        }
-        result[.tianMa] = horseByGroup[branchGroup]
-        result[.hongLuan] = Ganzhi.mod(3 - lunar.yearBranch, 12)
-        result[.tianXi] = Ganzhi.mod(9 - lunar.yearBranch, 12)
-        return result
     }
 }

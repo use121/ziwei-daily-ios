@@ -242,7 +242,7 @@ final class ZiWeiCoreTests: XCTestCase {
         let first = InsightEngine.insights(for: chart, layer: layer)
         let second = InsightEngine.insights(for: chart, layer: layer)
         XCTAssertEqual(first, second)
-        XCTAssertEqual(first.count, 6)
+        XCTAssertEqual(first.count, 13)
         XCTAssertEqual(first.map(\.topic), InsightTopic.allCases)
         for insight in first {
             XCTAssertFalse(insight.headline.isEmpty)
@@ -256,5 +256,138 @@ final class ZiWeiCoreTests: XCTestCase {
         let natal = InsightEngine.insights(for: chart, layer: chart.timeLayer(kind: .natal, on: date(2026, 11, 8)))
         let decade = InsightEngine.insights(for: chart, layer: chart.timeLayer(kind: .decade, on: date(2026, 11, 8)))
         XCTAssertNotEqual(natal[0].headline, decade[0].headline)
+    }
+
+    // MARK: - v1.2 扩星与格局
+
+    func testAuxiliaryStarInvariants() throws {
+        let chart = try ChartEngine.makeChart(from: input(date(1990, 6, 15, 9, 30)), referenceDate: date(2026, 11, 8))
+        let lu = chart.branch(of: .luCun)!
+        XCTAssertEqual(chart.branch(of: .qingYang), Ganzhi.mod(lu + 1, 12))
+        XCTAssertEqual(chart.branch(of: .tuoLuo), Ganzhi.mod(lu - 1, 12))
+
+        let luan = chart.branch(of: .hongLuan)!
+        XCTAssertEqual(chart.branch(of: .tianXi), Ganzhi.mod(luan + 6, 12))
+
+        let allAux: [Star] = [
+            .wenChang, .wenQu, .zuoFu, .youBi, .tianKui, .tianYue, .luCun,
+            .qingYang, .tuoLuo, .diKong, .diJie, .tianMa, .hongLuan, .tianXi,
+            .huoXing, .lingXing, .tianYao, .tianXing, .sanTai, .baZuo,
+            .enGuang, .tianGui, .longChi, .fengGe, .tianKu, .tianXu,
+            .tianShang, .tianShi
+        ]
+        for star in allAux {
+            let branch = chart.branch(of: star)
+            XCTAssertNotNil(branch, "\(star.rawValue) 未安星")
+            XCTAssertTrue((0..<12).contains(branch ?? -1), "\(star.rawValue) 落宫越界")
+        }
+
+        // 天伤居交友，天使居疾厄
+        XCTAssertEqual(chart.branch(of: .tianShang), Ganzhi.mod(chart.lifeBranch - 7, 12))
+        XCTAssertEqual(chart.branch(of: .tianShi), Ganzhi.mod(chart.lifeBranch - 5, 12))
+    }
+
+    func testSoulAndBodyMaster() {
+        let souls: [Star] = [.tanLang, .juMen, .luCun, .wenQu, .lianZhen, .wuQu,
+                             .poJun, .wuQu, .lianZhen, .wenQu, .luCun, .juMen]
+        for branch in 0..<12 {
+            XCTAssertEqual(SoulBody.soulMaster(lifeBranch: branch), souls[branch])
+        }
+        // 身主六星循环
+        for branch in 0..<12 {
+            XCTAssertEqual(SoulBody.bodyMaster(yearBranch: branch), SoulBody.bodyMaster(yearBranch: branch % 6))
+        }
+        XCTAssertEqual(SoulBody.bodyMaster(yearBranch: 0), .huoXing)
+    }
+
+    func testDoctoralTwelve() throws {
+        let chart = try ChartEngine.makeChart(from: input(date(1990, 6, 15, 9, 30)), referenceDate: date(2026, 11, 8))
+        let sequence = chart.doctoralSequence
+        XCTAssertEqual(sequence.count, 12)
+        XCTAssertEqual(Set(sequence.values).count, 12)
+        XCTAssertEqual(sequence[chart.luCunBranch], "博士")
+    }
+
+    func testPatternsAreDeterministic() throws {
+        let chart = try ChartEngine.makeChart(from: input(date(1990, 6, 15, 9, 30)), referenceDate: date(2026, 11, 8))
+        for kind in TimeLayerKind.allCases {
+            let layer = chart.timeLayer(kind: kind, month: 6, on: date(2026, 11, 8))
+            let first = PatternEngine.patterns(for: chart, layer: layer)
+            let second = PatternEngine.patterns(for: chart, layer: layer)
+            XCTAssertEqual(first, second)
+            for pattern in first {
+                XCTAssertFalse(pattern.name.isEmpty)
+                XCTAssertFalse(pattern.summary.isEmpty)
+                XCTAssertFalse(pattern.detail.isEmpty)
+                XCTAssertFalse(pattern.branchText.isEmpty)
+            }
+        }
+    }
+
+    func testTransformEntriesAlwaysFour() throws {
+        let chart = try ChartEngine.makeChart(from: input(date(1990, 6, 15, 9, 30)), referenceDate: date(2026, 11, 8))
+        for kind in TimeLayerKind.allCases {
+            let layer = chart.timeLayer(kind: kind, month: 6, on: date(2026, 11, 8))
+            let entries = TransformationPathEngine.entries(chart: chart, layer: layer)
+            XCTAssertEqual(entries.count, 4, "\(kind.rawValue)层四化数量应为 4")
+            XCTAssertEqual(Set(entries.map(\.kind)), Set(TransformationKind.allCases))
+            XCTAssertFalse(TransformationPathEngine.summary(chart: chart, layer: layer).isEmpty)
+        }
+    }
+
+    func testMonthLayerCoversTwelveBranches() throws {
+        let chart = try ChartEngine.makeChart(from: input(date(1990, 6, 15, 9, 30)), referenceDate: date(2026, 11, 8))
+        var pivots: Set<Int> = []
+        for month in 1...12 {
+            let layer = chart.timeLayer(kind: .month, year: 2026, month: month, on: date(2026, 11, 8))
+            XCTAssertEqual(layer.lunarMonth, month)
+            XCTAssertEqual(layer.transformations.count, 4)
+            pivots.insert(layer.pivotBranch)
+        }
+        XCTAssertEqual(pivots.count, 12, "十二个月应落在十二个不同命宫")
+    }
+
+    func testTopicScoresInRange() throws {
+        let chart = try ChartEngine.makeChart(from: input(date(1990, 6, 15, 9, 30)), referenceDate: date(2026, 11, 8))
+        let layer = chart.timeLayer(kind: .natal, on: date(2026, 11, 8))
+        let scores = TopicScoreEngine.scores(chart: chart, layer: layer)
+        XCTAssertEqual(scores.count, 13)
+        for item in scores {
+            XCTAssertGreaterThanOrEqual(item.score, 38)
+            XCTAssertLessThanOrEqual(item.score, 97)
+        }
+        XCTAssertEqual(TopicScoreEngine.scores(chart: chart, layer: layer), scores)
+    }
+
+    func testPatternsAcrossSamples() throws {
+        var total = 0
+        var names: Set<String> = []
+        for year in [1972, 1983, 1990, 1996, 2003, 2011] {
+            for month in [2, 7, 11] {
+                let chart = try ChartEngine.makeChart(
+                    from: input(date(year, month, 12, 14)),
+                    referenceDate: date(2026, 11, 8)
+                )
+                let layer = chart.timeLayer(kind: .natal, on: date(2026, 11, 8))
+                let patterns = PatternEngine.patterns(for: chart, layer: layer)
+                total += patterns.count
+                names.formUnion(patterns.map(\.name))
+            }
+        }
+        XCTAssertGreaterThan(total, 0, "样本盘中应至少命中若干格局")
+        XCTAssertGreaterThanOrEqual(names.count, 3, "格局类型应有足够多样性")
+    }
+
+    func testThirteenTopicsHaveContent() throws {
+        let chart = try ChartEngine.makeChart(from: input(date(1990, 6, 15, 9, 30)), referenceDate: date(2026, 11, 8))
+        let layer = chart.timeLayer(kind: .year, year: 2026, on: date(2026, 11, 8))
+        let insights = InsightEngine.insights(for: chart, layer: layer)
+        XCTAssertEqual(insights.count, InsightTopic.allCases.count)
+        XCTAssertEqual(InsightTopic.core.count, 6)
+        for insight in insights {
+            XCTAssertFalse(insight.headline.isEmpty)
+            XCTAssertGreaterThanOrEqual(insight.blocks.count, 3)
+            XCTAssertTrue(insight.blocks.allSatisfy { !$0.body.isEmpty })
+        }
     }
 }

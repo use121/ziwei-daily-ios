@@ -8,6 +8,7 @@ public enum TimeLayerKind: String, Codable, CaseIterable, Identifiable, Sendable
     case natal = "本命"
     case decade = "大限"
     case year = "流年"
+    case month = "流月"
 
     public var id: String { rawValue }
 }
@@ -39,6 +40,8 @@ public struct TimeLayer: Equatable, Sendable {
     public let title: String
     public let subtitle: String
     public let decade: DecadeSlot?
+    /// 流月层的农历月份，其余层为 nil。
+    public let lunarMonth: Int?
 
     public var stemName: String { Ganzhi.stems[Ganzhi.mod(stemIndex, 10)] }
     public var pivotBranchName: String { Ganzhi.branches[Ganzhi.mod(pivotBranch, 12)] }
@@ -108,6 +111,7 @@ public extension Chart {
         kind: TimeLayerKind,
         decadeIndex: Int? = nil,
         year: Int? = nil,
+        month: Int? = nil,
         on date: Date = Date()
     ) -> TimeLayer {
         switch kind {
@@ -120,7 +124,8 @@ public extension Chart {
                 transformations: birthTransformations,
                 title: "本命十二宫",
                 subtitle: "\(bureau.bureauName) · 命在\(Ganzhi.branches[lifeBranch])",
-                decade: nil
+                decade: nil,
+                lunarMonth: nil
             )
 
         case .decade:
@@ -137,7 +142,8 @@ public extension Chart {
                 transformations: ChartEngine.transformations(for: palace.stemIndex, source: .decade),
                 title: "大限 \(slot.rangeText)",
                 subtitle: "\(palace.ganzhi)宫 · \(Ganzhi.stems[palace.stemIndex])干起四化",
-                decade: slot
+                decade: slot,
+                lunarMonth: nil
             )
 
         case .year:
@@ -155,7 +161,33 @@ public extension Chart {
                 transformations: ChartEngine.transformations(for: stem, source: .year),
                 title: "\(target) \(Ganzhi.string(index))年",
                 subtitle: "流年命宫在\(Ganzhi.branches[branch]) · \(Ganzhi.animals[branch])年",
-                decade: nil
+                decade: nil,
+                lunarMonth: nil
+            )
+
+        case .month:
+            let timeZone = ChineseCalendarConverter.timeZone(for: input.timeZoneIdentifier)
+            let currentLunar = ChineseCalendarConverter.lunarDate(from: date, timeZone: timeZone)
+            let targetYear = year ?? currentLunar.gregorianYear
+            let yearIndex = Ganzhi.mod(targetYear - 4, 60)
+            let yearStem = yearIndex % 10
+            let yearBranchIndex = yearIndex % 12
+            let monthNumber = min(max(month ?? currentLunar.month, 1), 12)
+            // 流月命宫：流年命宫起正月，顺数至该月
+            let pivot = Ganzhi.mod(yearBranchIndex + monthNumber - 1, 12)
+            // 月干用五虎遁从流年干推出
+            let yinStem = Ganzhi.mod((yearStem % 5) * 2 + 2, 10)
+            let monthStem = Ganzhi.mod(yinStem + monthNumber - 1, 10)
+            return TimeLayer(
+                kind: .month,
+                pivotBranch: pivot,
+                stemIndex: monthStem,
+                year: targetYear,
+                transformations: ChartEngine.transformations(for: monthStem, source: .month),
+                title: "\(targetYear)年 农历\(monthNumber)月",
+                subtitle: "月建\(Ganzhi.branches[Ganzhi.mod(2 + monthNumber - 1, 12)]) · 流月命宫在\(Ganzhi.branches[pivot])",
+                decade: nil,
+                lunarMonth: monthNumber
             )
         }
     }

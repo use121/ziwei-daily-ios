@@ -6,10 +6,12 @@ struct InsightView: View {
     @EnvironmentObject private var state: AppState
     @State private var expanded: Set<String> = [InsightTopic.overview.rawValue]
     @State private var showBasis = false
+    @State private var showAllTopics = ProcessInfo.processInfo.environment["ZIWEI_ALL"] == "1"
 
     var body: some View {
         NavigationStack {
             if let chart = state.chart, let layer = state.currentLayer {
+                ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         header(chart: chart, layer: layer)
@@ -17,7 +19,12 @@ struct InsightView: View {
                         LayerSwitcher()
                             .ziWeiCard(padding: 14)
 
-                        ForEach(state.insights) { insight in
+                        radarCard
+                        transformationPathCard
+                            .id("paths")
+                        topicFilter
+
+                        ForEach(visibleInsights) { insight in
                             InsightCard(
                                 insight: insight,
                                 isExpanded: expanded.contains(insight.id),
@@ -34,8 +41,26 @@ struct InsightView: View {
                     .padding(18)
                     .padding(.bottom, 28)
                 }
+                #if DEBUG
+                .onAppear {
+                    if ProcessInfo.processInfo.environment["ZIWEI_SCROLL"] == "paths" {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                            proxy.scrollTo("paths", anchor: .top)
+                        }
+                    }
+                }
+                #endif
+                }
                 .background(Theme.paper)
                 .navigationTitle("命理解读")
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        ShareLink(item: state.fullReportText) {
+                            Image(systemName: "square.and.arrow.up")
+                                .foregroundStyle(Theme.cinnabar)
+                        }
+                    }
+                }
             } else {
                 EmptyStateView(
                     title: "还没有可解读的命盘",
@@ -45,6 +70,14 @@ struct InsightView: View {
                     state.selectedTab = .input
                 }
                 .navigationTitle("命理解读")
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        ShareLink(item: state.fullReportText) {
+                            Image(systemName: "square.and.arrow.up")
+                                .foregroundStyle(Theme.cinnabar)
+                        }
+                    }
+                }
             }
         }
     }
@@ -52,18 +85,89 @@ struct InsightView: View {
     private func header(chart: Chart, layer: TimeLayer) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Text("\(layer.kind.rawValue) · 六维解读")
+                Text("\(layer.kind.rawValue) · 十三维解读")
                     .font(.system(.title2, design: .serif, weight: .semibold))
                     .foregroundStyle(Theme.ink)
                 if state.isProUnlocked {
                     TagPill(text: "专业版已解锁", color: Theme.gold)
                 }
             }
-            Text("命宫、夫妻、官禄、财帛、疾厄五宫联动，按传统规则生成；同一张盘同一时间层，结论不随刷新变化。")
+            Text("核心六维看主线，其余七宫看细节；格局与四化由当前时间层推算，同一张盘同一层，结论不随刷新变化。")
                 .font(.caption)
                 .foregroundStyle(Theme.secondaryInk)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var visibleInsights: [Insight] {
+        showAllTopics ? state.insights : state.insights.filter { $0.topic.isCore }
+    }
+
+    private var radarCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeading(title: "六维强弱", subtitle: "本层相对结构")
+            RadarChart(scores: state.topicScores)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .ziWeiCard()
+    }
+
+    private var transformationPathCard: some View {
+        VStack(alignment: .leading, spacing: 11) {
+            SectionHeading(title: "四化路径", subtitle: state.currentLayer?.kind.rawValue ?? "")
+            Text(state.transformSummary)
+                .font(.footnote)
+                .foregroundStyle(Theme.ink)
+                .fixedSize(horizontal: false, vertical: true)
+
+            ForEach(state.transformEntries) { entry in
+                HStack(spacing: 8) {
+                    Text(entry.kind.rawValue)
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Theme.transformationColor(entry.kind))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Theme.transformationColor(entry.kind).opacity(0.12))
+                        .clipShape(Capsule())
+                    Text(entry.star.rawValue)
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(Theme.ink)
+                    Text("→ \(entry.palaceName) · \(entry.branchName)")
+                        .font(.caption)
+                        .foregroundStyle(Theme.secondaryInk)
+                    Spacer(minLength: 0)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .ziWeiCard()
+    }
+
+    private var topicFilter: some View {
+        HStack(spacing: 8) {
+            ForEach([false, true], id: \.self) { all in
+                Button {
+                    withAnimation(.easeOut(duration: 0.18)) { showAllTopics = all }
+                } label: {
+                    Text(all ? "全部十三维" : "核心六维")
+                        .font(.system(size: 12, weight: (showAllTopics == all) ? .semibold : .regular))
+                        .foregroundStyle(showAllTopics == all ? Theme.cinnabar : Theme.secondaryInk)
+                        .padding(.horizontal, 11)
+                        .padding(.vertical, 6)
+                        .background(
+                            Capsule().fill(showAllTopics == all ? Theme.cinnabarLight.opacity(0.5) : Theme.card)
+                        )
+                        .overlay(
+                            Capsule().stroke(Theme.line.opacity(showAllTopics == all ? 0.7 : 0.4), lineWidth: 0.6)
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+            Spacer()
+            Text("\(visibleInsights.count) 项")
+                .font(.caption2)
+                .foregroundStyle(Theme.secondaryInk)
+        }
     }
 
     private func basisCard(chart: Chart, layer: TimeLayer) -> some View {

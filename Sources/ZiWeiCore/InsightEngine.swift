@@ -102,11 +102,43 @@ public enum StarVoices {
             .init(essence: "喜庆与联结，代表关系中的暖意",
                   strength: "容易拉近距离",
                   shadow: "把短暂情绪当长期承诺")
+        case .huoXing, .lingXing:
+            .init(essence: "爆发力，来得急、去得也快",
+                  strength: "能在短时间集中火力",
+                  shadow: "急躁、容易伤人伤己")
+        case .tianYao:
+            .init(essence: "感受力与吸引力，重氛围与情调",
+                  strength: "懂分寸、会营造气氛",
+                  shadow: "情绪牵动判断")
+        case .tianXing:
+            .init(essence: "纪律与自我要求，讲规矩",
+                  strength: "能坚持、守得住标准",
+                  shadow: "对自己过于苛刻")
+        case .sanTai, .baZuo:
+            .init(essence: "位阶与条理，讲究次序",
+                  strength: "能把事情排布清楚",
+                  shadow: "重形式轻实质")
+        case .enGuang, .tianGui:
+            .init(essence: "礼遇与荣显，代表被认可的场合",
+                  strength: "适合对外争取与展示",
+                  shadow: "在意评价，容易虚耗")
+        case .longChi, .fengGe:
+            .init(essence: "才艺与雅致，重手感和审美",
+                  strength: "细致、有品味",
+                  shadow: "在细节上过度打磨")
+        case .tianKu, .tianXu:
+            .init(essence: "情绪的低处，代表未被说出的疲惫",
+                  strength: "对情绪敏感、共情力强",
+                  shadow: "自怜与空转")
+        case .tianShang, .tianShi:
+            .init(essence: "劳损与提醒，代表身体的信号",
+                  strength: "知道自己的限度",
+                  shadow: "硬扛到出问题")
         }
     }
 }
 
-/// 解读主题：普通版六维。
+/// 解读主题：核心六维 + 七宫细读，共十三维。
 public enum InsightTopic: String, Codable, CaseIterable, Identifiable, Sendable {
     case overview = "命格"
     case personality = "性格"
@@ -114,8 +146,20 @@ public enum InsightTopic: String, Codable, CaseIterable, Identifiable, Sendable 
     case career = "事业"
     case wealth = "财运"
     case health = "健康"
+    case siblings = "兄弟"
+    case children = "子女"
+    case travel = "迁移"
+    case friends = "交友"
+    case property = "田宅"
+    case fortune = "福德"
+    case parents = "父母"
 
     public var id: String { rawValue }
+
+    /// 核心六维：默认展示，并用于雷达图。
+    public static let core: [InsightTopic] = [.overview, .personality, .love, .career, .wealth, .health]
+
+    public var isCore: Bool { Self.core.contains(self) }
 
     public var palace: PalaceKind {
         switch self {
@@ -124,6 +168,13 @@ public enum InsightTopic: String, Codable, CaseIterable, Identifiable, Sendable 
         case .career: .career
         case .wealth: .wealth
         case .health: .health
+        case .siblings: .siblings
+        case .children: .children
+        case .travel: .travel
+        case .friends: .friends
+        case .property: .property
+        case .fortune: .fortune
+        case .parents: .parents
         }
     }
 
@@ -135,6 +186,13 @@ public enum InsightTopic: String, Codable, CaseIterable, Identifiable, Sendable 
         case .career: "briefcase"
         case .wealth: "yensign.circle"
         case .health: "leaf"
+        case .siblings: "person.2"
+        case .children: "figure.child"
+        case .travel: "airplane"
+        case .friends: "person.3"
+        case .property: "house"
+        case .fortune: "moon.stars"
+        case .parents: "book.closed"
         }
     }
 
@@ -146,6 +204,13 @@ public enum InsightTopic: String, Codable, CaseIterable, Identifiable, Sendable 
         case .career: "官禄宫与事业路径"
         case .wealth: "财帛宫与资源节奏"
         case .health: "疾厄宫与身心状态"
+        case .siblings: "兄弟宫与同辈协作"
+        case .children: "子女宫与创作成果"
+        case .travel: "迁移宫与外部机会"
+        case .friends: "交友宫与团队人际"
+        case .property: "田宅宫与长期积累"
+        case .fortune: "福德宫与精神弹性"
+        case .parents: "父母宫与制度长辈"
         }
     }
 }
@@ -179,6 +244,7 @@ public enum InsightEngine {
             case .career: career(chart: chart, layer: layer)
             case .wealth: wealth(chart: chart, layer: layer)
             case .health: health(chart: chart, layer: layer)
+            default: palaceInsight(topic: topic, chart: chart, layer: layer)
             }
         }
     }
@@ -437,6 +503,59 @@ public enum InsightEngine {
 
     // MARK: - 文本零件
 
+    // MARK: - 七宫细读
+
+    /// 兄弟、子女、迁移、交友、田宅、福德、父母七宫的通用解读。
+    /// 与核心六维共用同一套措辞零件，保证同一张盘的风格一致。
+    private static func palaceInsight(topic: InsightTopic, chart: Chart, layer: TimeLayer) -> Insight {
+        let kind = topic.palace
+        let branch = branchOf(kind, layer: layer)
+        let palace = chart.palace(at: branch)
+        let stars = effectiveStars(chart: chart, branch: branch)
+        let names = starNames(stars)
+        let brightness = brightnessPhrase(stars: stars, branch: branch)
+        let borrowed = palace.mainStars.isEmpty
+        let headline = "\(kind.rawValue)在\(Ganzhi.branches[branch])，\(names)\(guardPhrase(stars))，主题是\(kind.focus)。"
+
+        var blocks: [InsightBlock] = []
+        blocks.append(.init(
+            heading: "\(kind.rawValue)定性",
+            body: "在「\(kind.rawValue)」这一宫，看的是\(kind.focus)。本层它落在\(Ganzhi.branches[branch])宫，宫干\(Ganzhi.stems[palace.stemIndex])，\(names)\(guardPhrase(stars))，\(brightness)。\(barely(borrowed: borrowed))"
+        ))
+        blocks.append(.init(heading: "主星解析", body: starParagraph(stars: stars, branch: branch)))
+        blocks.append(.init(heading: "三方四正", body: triadParagraph(chart: chart, branch: branch, layer: layer)))
+        blocks.append(.init(
+            heading: "四化与本层提醒",
+            body: "\(transformationHint(chart: chart, branch: branch))\(layerHint(layer))"
+        ))
+        if let first = stars.first {
+            let profile = StarCatalog.profile(first)
+            blocks.append(.init(
+                heading: "行动建议",
+                body: "围绕\(kind.focus)，可以这样用：\(profile.action)。\(profile.caution)。"
+            ))
+        }
+
+        return Insight(
+            topic: topic,
+            headline: headline,
+            blocks: blocks,
+            keyStars: stars,
+            palaceBranch: branch,
+            borrowsOpposite: borrowed,
+            caution: shadowSentence(stars)
+        )
+    }
+
+    private static func branchOf(_ kind: PalaceKind, layer: TimeLayer) -> Int {
+        let index = PalaceKind.allCases.firstIndex(of: kind) ?? 0
+        return Ganzhi.mod(layer.pivotBranch - index, 12)
+    }
+
+    private static func barely(borrowed: Bool) -> String {
+        borrowed ? "本宫无主星，需借对宫星曜一并看。" : ""
+    }
+
     private static func effectiveStars(chart: Chart, branch: Int) -> [Star] {
         let palace = chart.palace(at: branch)
         if !palace.mainStars.isEmpty { return palace.mainStars }
@@ -527,6 +646,8 @@ public enum InsightEngine {
             return "大限层看的是这十年的主基调。"
         case .year:
             return "流年层看的是当年被引动的部分。"
+        case .month:
+            return "流月层看的是这个月具体落在哪件事上。"
         }
     }
 }
