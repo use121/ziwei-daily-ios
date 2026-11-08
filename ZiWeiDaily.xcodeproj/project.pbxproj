@@ -333,7 +333,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = App/ZiWeiWidget/ZiWeiWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_TEAM = 5Y7JPFB56Q;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/ZiWeiWidget/Info.plist;
@@ -343,7 +343,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.6.0;
+				MARKETING_VERSION = 1.6.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ziweidaily.5Y7JPFB56Q.widget;
 				PRODUCT_NAME = ZiWeiWidget;
 				SDKROOT = iphoneos;
@@ -360,7 +360,7 @@
 				CODE_SIGN_ENTITLEMENTS = App/ZiWeiDaily/ZiWeiDaily.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_TEAM = 5Y7JPFB56Q;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -375,7 +375,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.6.0;
+				MARKETING_VERSION = 1.6.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ziweidaily.5Y7JPFB56Q;
 				PRODUCT_MODULE_NAME = ZiWeiDaily;
 				PRODUCT_NAME = ZiWeiDaily;
@@ -512,7 +512,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = App/ZiWeiWidget/ZiWeiWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_TEAM = 5Y7JPFB56Q;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/ZiWeiWidget/Info.plist;
@@ -522,7 +522,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.6.0;
+				MARKETING_VERSION = 1.6.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ziweidaily.5Y7JPFB56Q.widget;
 				PRODUCT_NAME = ZiWeiWidget;
 				SDKROOT = iphoneos;
@@ -539,7 +539,7 @@
 				CODE_SIGN_ENTITLEMENTS = App/ZiWeiDaily/ZiWeiDaily.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_TEAM = 5Y7JPFB56Q;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -554,7 +554,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.6.0;
+				MARKETING_VERSION = 1.6.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ziweidaily.5Y7JPFB56Q;
 				PRODUCT_MODULE_NAME = ZiWeiDaily;
 				PRODUCT_NAME = ZiWeiDaily;

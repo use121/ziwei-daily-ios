@@ -20,6 +20,8 @@ struct RootView: View {
                 .tag(AppTab.input)
         }
         .background(Theme.paper)
+        // nil 时跟随系统，非 nil 时强制覆盖整个窗口（含弹层与确认框）
+        .preferredColorScheme(state.appearanceMode.colorScheme)
         .onAppear { state.refreshToday() }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
             state.refreshToday()

@@ -11,6 +11,45 @@ enum AppTab: Hashable {
     case input
 }
 
+/// 外观偏好。默认跟随系统，也可以强制锁定浅色或深色。
+enum AppearanceMode: String, CaseIterable, Identifiable {
+    case system = "跟随系统"
+    case light = "浅色"
+    case dark = "深色"
+
+    var id: String { rawValue }
+
+    /// nil 表示交给系统决定；SwiftUI 的 preferredColorScheme 用 nil 表示跟随。
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: nil
+        case .light: .light
+        case .dark: .dark
+        }
+    }
+
+    /// 设置项里的示意图标。
+    var symbol: String {
+        switch self {
+        case .system: "circle.lefthalf.filled"
+        case .light: "sun.max"
+        case .dark: "moon"
+        }
+    }
+
+    /// 当前 App 实际生效的外观，用于设置行下面那行说明。
+    func resolvedDescription(systemIsDark: Bool) -> String {
+        switch self {
+        case .system:
+            return systemIsDark ? "当前跟随系统：深色" : "当前跟随系统：浅色"
+        case .light:
+            return "始终使用宣纸配色，不受系统设置影响"
+        case .dark:
+            return "始终使用暖墨配色，夜间或暗光环境下更省眼"
+        }
+    }
+}
+
 /// 一份排盘档案。
 struct Profile: Codable, Equatable, Identifiable {
     var id: UUID
@@ -40,12 +79,14 @@ final class AppState: ObservableObject {
     /// 流时层选中的时支（nil 表示跟随当前时间）。
     @Published var layerHourBranch: Int?
     @Published var isProUnlocked: Bool
+    @Published var appearanceMode: AppearanceMode
     @Published private(set) var profiles: [Profile] = []
     @Published private(set) var currentProfileID: UUID?
 
     private let storageKey = "ziwei.daily.birth-input.v1"
     private let profilesKey = "ziwei.daily.profiles.v1"
     private let proKey = "ziwei.daily.pro.v1"
+    private let appearanceKey = "ziwei.daily.appearance.v1"
     /// 一生运程计算较重，按「盘 + 当天」缓存，避免每次重绘都重算。
     private var lifeCache: (key: String, overview: LifeOverview)?
 
@@ -96,6 +137,13 @@ final class AppState: ObservableObject {
         layerYear = Calendar.current.component(.year, from: Date())
         layerMonth = Calendar(identifier: .chinese).component(.month, from: Date())
         isProUnlocked = UserDefaults.standard.object(forKey: proKey) as? Bool ?? true
+        appearanceMode = AppearanceMode(rawValue: UserDefaults.standard.string(forKey: appearanceKey) ?? "") ?? .system
+        #if DEBUG
+        if let raw = ProcessInfo.processInfo.environment["ZIWEI_APPEARANCE"],
+           let mode = AppearanceMode(rawValue: raw) {
+            appearanceMode = mode
+        }
+        #endif
         #if DEBUG
         let environment = ProcessInfo.processInfo.environment
         if environment["ZIWEI_SAMPLE"] == "1" {
@@ -428,6 +476,11 @@ final class AppState: ObservableObject {
     func setProUnlocked(_ value: Bool) {
         isProUnlocked = value
         UserDefaults.standard.set(value, forKey: proKey)
+    }
+
+    func setAppearanceMode(_ mode: AppearanceMode) {
+        appearanceMode = mode
+        UserDefaults.standard.set(mode.rawValue, forKey: appearanceKey)
     }
 
     var shareText: String {

@@ -11,6 +11,7 @@ private struct PlacePreset: Identifiable {
 
 struct BirthInputView: View {
     @EnvironmentObject private var state: AppState
+    @Environment(\.colorScheme) private var colorScheme
     @State private var showClearConfirmation = false
     @State private var showDeleteProfileConfirmation = false
 
@@ -47,6 +48,13 @@ struct BirthInputView: View {
     var body: some View {
         NavigationStack {
             Form {
+                #if DEBUG
+                // 截图核对用：Form 无法脚本滚动，「外观」分组平时在最底部
+                if ProcessInfo.processInfo.environment["ZIWEI_FORM_TOPMOST"] == "1" {
+                    appearanceSection
+                }
+                #endif
+
                 Section {
                     Menu {
                         ForEach(state.profiles) { profile in
@@ -153,6 +161,8 @@ struct BirthInputView: View {
                     Text("1986–1991 年国内实行过夏令时，此期间出生建议保持开启；闰月口径影响月建、命身宫与安星，切换后需重新排盘。")
                 }
 
+                appearanceSection
+
                 Section {
                     Toggle("专业版已解锁", isOn: Binding(
                         get: { state.isProUnlocked },
@@ -216,6 +226,8 @@ struct BirthInputView: View {
                 }
             }
             .scrollContentBackground(.hidden)
+            // 默认行底色是系统冷灰/冷白，深色下和暖墨底糊在一起，统一到卡片色
+            .listRowBackground(Theme.card)
             .background(Theme.paper)
             .navigationTitle("出生资料")
             .navigationBarTitleDisplayMode(.large)
@@ -228,6 +240,35 @@ struct BirthInputView: View {
                 Button("删除档案", role: .destructive) { state.deleteCurrentProfile() }
                 Button("取消", role: .cancel) {}
             }
+        }
+    }
+
+    /// 外观选择：跟随系统 / 浅色 / 深色。
+    private var appearanceSection: some View {
+        Section {
+            Picker("外观", selection: Binding(
+                get: { state.appearanceMode },
+                set: { state.setAppearanceMode($0) }
+            )) {
+                ForEach(AppearanceMode.allCases) { mode in
+                    Text(mode.rawValue).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            Label {
+                Text(state.appearanceMode.resolvedDescription(systemIsDark: colorScheme == .dark))
+                    .font(.caption)
+                    .foregroundStyle(Theme.secondaryInk)
+            } icon: {
+                Image(systemName: state.appearanceMode.symbol)
+                    .font(.caption)
+                    .foregroundStyle(Theme.gold)
+            }
+        } header: {
+            Text("外观")
+        } footer: {
+            Text("跟随系统时会随手机深浅色自动切换；选浅色或深色则固定不变，只影响本机显示。导出的长图始终是浅色，方便打印与转发。")
         }
     }
 
