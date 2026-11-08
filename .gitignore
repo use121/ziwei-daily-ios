@@ -7,3 +7,6 @@ xcuserdata/
 .swiftpm/
 .tools/
 *.moved-aside
+
+# 本地工作记忆
+.workbuddy/
