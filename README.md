@@ -33,7 +33,7 @@ Sources/ZiWeiCore/
   Brightness.swift                星曜七档亮度表（全书派）
   TimeLayer.swift                 本命/大限/流年时间层与盘面旋转
   InsightEngine.swift             六维与单宫解读生成
-Tests/ZiWeiCoreTests/             10 组单元测试
+Tests/ZiWeiCoreTests/             20 项单元测试
 App/ZiWeiDaily/                   SwiftUI 应用
 project.yml                       XcodeGen 工程描述
 Scripts/build_ipa.sh              本地构建未签名 IPA
@@ -63,6 +63,23 @@ open ZiWeiDaily.xcodeproj
 # 产物: Export/ZiWeiDaily-unsigned.ipa
 ```
 
+## 下载哪个 IPA
+
+Release 里有两个文件，内容完全相同，只是 zip 封装方式不同：
+
+| 文件 | 封装 | 用在哪 |
+| --- | --- | --- |
+| `ZiWeiDaily-unsigned.ipa` | deflate + 零附加字段 | 默认用这个，Sideloadly / AltStore / Xcode 都认 |
+| `ZiWeiDaily-unsigned-store.ipa` | 全 store（不压缩）+ 零附加字段 | 上面那个被签名工具报「格式不支持」时换这个 |
+
+两个包都用 `zip -X` 打包，去掉了 Info-ZIP 默认写入的 `0x5455`（时间戳）和 `0x7875`（Unix UID/GID）附加字段。少数签名工具用「本地头顺序扫描」解析 IPA，遇到这两个字段会直接判定格式不支持。CI 里也加了结构自检（CRC、`Payload/*.app/Info.plist`、无 `__MACOSX`）。
+
+下载后可以先核对大小与哈希，排除传输被截断：
+
+```bash
+shasum -a 256 ZiWeiDaily-unsigned.ipa
+```
+
 ## 自签名安装到 iPhone
 
 CI 产出的 IPA 是**未签名**的（无 `_CodeSignature`、无 `embedded.mobileprovision`），需要用自己的证书签一次。
@@ -73,6 +90,15 @@ CI 产出的 IPA 是**未签名**的（无 `_CodeSignature`、无 `embedded.mobi
 2. 用 Sideloadly 拖入 IPA，填 Apple ID，开始签名安装。
 3. 首次运行需在「设置 → 通用 → VPN与设备管理」信任证书。
 4. 免费账号签名 7 天有效，付费开发者账号 1 年有效。
+
+### 方式 B：手机端签名工具（全能签 / 轻松签）
+
+1. 先用「设置 → 无线传输」把 IPA 从电脑浏览器传给手机，**不要用聊天软件转发**——微信/QQ 传输会改文件名、也可能截断。
+2. 在「导入文件」里选 IPA。
+3. 若提示「文件格式不支持或导入失败」，按顺序排查：
+   - 看文件大小是否为 297,585 字节（deflate 版）/ 808,332 字节（store 版）。偏小说明下载被截断，重新传输。
+   - 换另一个变体再试一次（deflate ↔ store）。
+   - 文件名里的空格和「 2」是浏览器重名后缀，建议改名成 `ZiWeiDaily.ipa` 再导入。
 
 ### 方式 B：Xcode 手动签名
 
@@ -87,7 +113,7 @@ codesign -f -s "Apple Development: you@example.com (XXXXXXXXXX)" \
 
 # 3. 塞入描述文件并重新打包
 cp your.mobileprovision stage/Payload/ZiWeiDaily.app/embedded.mobileprovision
-cd stage && zip -qry ../ZiWeiDaily-signed.ipa Payload
+cd stage && zip -qryX ../ZiWeiDaily-signed.ipa Payload
 ```
 
 更稳妥的做法是直接 `xcodegen generate` 后用 Xcode `Product → Archive → Distribute App → Development` 导出，Xcode 会自动处理描述文件与权限。
