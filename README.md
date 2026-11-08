@@ -51,7 +51,7 @@ Sources/ZiWeiCore/
   TransformationPath.swift       四化路径与十三维评分
   Longevity.swift                 长生十二神、小限、飞星与自化
   Classics.swift                  公版古籍断语摘编
-Tests/ZiWeiCoreTests/             40 项单元测试
+Tests/ZiWeiCoreTests/             41 项单元测试
 App/ZiWeiDaily/                   SwiftUI 应用（含长图导出 SharePosterView）
 project.yml                       XcodeGen 工程描述
 Scripts/build_ipa.sh              本地构建未签名 IPA
@@ -114,7 +114,7 @@ CI 产出的 IPA 是**未签名**的（无 `_CodeSignature`、无 `embedded.mobi
 1. 先用「设置 → 无线传输」把 IPA 从电脑浏览器传给手机，**不要用聊天软件转发**——微信/QQ 传输会改文件名、也可能截断。
 2. 在「导入文件」里选 IPA。
 3. 若提示「文件格式不支持或导入失败」，按顺序排查：
-   - 看文件大小是否约为 463 KB（deflate 版）/ 1.17 MB（store 版）。偏小说明下载被截断，重新传输。
+   - 看文件大小是否约为 426 KB（deflate 版）/ 1.07 MB（store 版）。偏小说明下载被截断，重新传输。
    - 换另一个变体再试一次（deflate ↔ store）。
    - 文件名里的空格和「 2」是浏览器重名后缀，建议改名成 `ZiWeiDaily.ipa` 再导入。
 

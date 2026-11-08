@@ -13,7 +13,7 @@ struct TodayView: View {
                         scoreHero(report, chart: chart)
 
                         VStack(alignment: .leading, spacing: 14) {
-                            SectionHeading(title: "四项状态", subtitle: "满分均为 100")
+                            SectionHeading(title: "四项状态", subtitle: "满分 100 · 综合取其平均")
                             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                                 ForEach(report.dimensions) { dimension in
                                     DimensionCard(dimension: dimension)
@@ -72,7 +72,7 @@ struct TodayView: View {
                         }
 
                         contentCard(title: "评分依据", systemImage: "slider.horizontal.3") {
-                            Text("基础分结合流日三方四正、四化、星曜与五行关系计算；同一资料同一天结果一致。")
+                            Text("综合分取「事业 · 财务 · 人际 · 身心」四项的算术平均，所以总分一定落在四项之间。四项分数由各宫主辅星、生年与流日四化共同计算；同一资料同一天结果一致。")
                                 .font(.caption)
                                 .foregroundStyle(Theme.secondaryInk)
                             ForEach(report.scoringNotes.indices, id: \.self) { index in

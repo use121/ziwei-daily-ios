@@ -530,6 +530,27 @@ final class ZiWeiCoreTests: XCTestCase {
         XCTAssertNotEqual(chartNext.palace(.life).mainStars, chartCurrent.palace(.life).mainStars)
     }
 
+    /// 综合分必须由四项推出来：否则会出现「总分 75、四项最高 77」这类互相矛盾的数字
+    func testOverallScoreIsAverageOfDimensions() throws {
+        let births = [date(1990, 6, 15, 9, 30), date(1985, 2, 3, 22), date(1998, 11, 20, 4), date(1972, 7, 8, 14)]
+        for birth in births {
+            let chart = try ChartEngine.makeChart(from: input(birth), referenceDate: date(2026, 11, 8))
+            for offset in [0, 1, 7, 33, 180] {
+                let day = date(2026, 11, 8).addingTimeInterval(TimeInterval(offset * 86_400))
+                let report = FortuneEngine.report(for: chart, on: day)
+                let scores = report.dimensions.map(\.score)
+                XCTAssertEqual(report.dimensions.count, 4)
+                XCTAssertTrue(scores.allSatisfy { $0 >= 0 && $0 <= 100 })
+                let average = Int((Double(scores.reduce(0, +)) / Double(scores.count)).rounded())
+                XCTAssertEqual(report.score, average, "综合分应等于四项平均")
+                XCTAssertEqual(report.dimensions.map(\.title), ["事业", "财务", "人际", "身心"])
+                // 小字里引用的分数必须与分项卡一致
+                XCTAssertTrue(report.highlights[0].contains("\(scores.max()!) 分"))
+                XCTAssertTrue(report.summary.contains(scores.min()!.description))
+            }
+        }
+    }
+
     func testClassicLibraryIntegrity() {
         XCTAssertFalse(ClassicLibrary.quotes.isEmpty)
         for quote in ClassicLibrary.quotes {

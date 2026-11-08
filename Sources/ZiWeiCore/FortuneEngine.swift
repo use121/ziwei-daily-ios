@@ -16,74 +16,56 @@ public enum FortuneEngine {
         let triad = [activeBranch, Ganzhi.mod(activeBranch + 4, 12), Ganzhi.mod(activeBranch + 8, 12), Ganzhi.mod(activeBranch + 6, 12)]
         let dayTransformations = ChartEngine.transformations(for: dayStem, source: .day)
         var notes: [String] = []
-        var rawScore = 64
 
         let activeMainNames = activePalace.mainStars.map(\.rawValue).joined(separator: "、")
         let borrowedStars = chart.palace(at: activeBranch + 6).mainStars
         let displayMainNames = activeMainNames.isEmpty ? borrowedStars.map(\.rawValue).joined(separator: "、") : activeMainNames
         notes.append("流日命宫在\(activePalace.branchName)·\(activePalace.kind.rawValue)，\(displayMainNames.isEmpty ? "以宫位节奏为主" : "见\(displayMainNames)")")
 
+        // 当日整体变量：流日四化落三方四正、日干与本命局的五行关系，四项分数共用同一份偏移
+        var dayBias = 0
         for transformation in dayTransformations {
             guard let branch = chart.branch(of: transformation.star), triad.contains(branch) else { continue }
             let palace = chart.palace(at: branch)
             notes.append("流日\(transformation.star.rawValue)\(transformation.kind.rawValue)落入\(palace.kind.rawValue)三方四正")
             switch transformation.kind {
-            case .lu: rawScore += 7
-            case .quan: rawScore += 4
-            case .ke: rawScore += 4
-            case .ji: rawScore -= 9
-            }
-        }
-        for transformation in chart.birthTransformations {
-            guard let branch = chart.branch(of: transformation.star), triad.contains(branch) else { continue }
-            switch transformation.kind {
-            case .lu: rawScore += 3
-            case .quan: rawScore += 2
-            case .ke: rawScore += 2
-            case .ji: rawScore -= 4
+            case .lu: dayBias += 5
+            case .quan, .ke: dayBias += 3
+            case .ji: dayBias -= 6
             }
         }
         if let ji = chart.birthTransformations.first(where: { $0.kind == .ji }),
            let branch = chart.branch(of: ji.star), triad.contains(branch) {
             notes.append("本命\(ji.star.rawValue)化忌被流日引动，重要安排宜留缓冲")
-        }
-
-        for branch in triad {
-            let palace = chart.palace(at: branch)
-            let multiplier = branch == activeBranch ? 2 : 1
-            rawScore += palace.mainStars.reduce(0) { $0 + StarCatalog.profile($1).weight } * multiplier / 2
-            for star in palace.auxiliaryStars {
-                switch star {
-                case .wenChang, .wenQu, .zuoFu, .youBi, .tianKui, .tianYue, .luCun, .hongLuan, .tianXi:
-                    rawScore += branch == activeBranch ? 1 : 0
-                case .qingYang, .tuoLuo, .diKong, .diJie:
-                    rawScore -= branch == activeBranch ? 2 : 1
-                default: break
-                }
-            }
+            dayBias -= 2
         }
 
         let relation = Ganzhi.element(ofStem: dayStem).relation(to: chart.bureau)
         switch relation {
-        case .same: rawScore += 2
-        case .generatedBy: rawScore += 3
-        case .generates: rawScore += 1
-        case .controls: rawScore -= 2
-        case .controlledBy: rawScore -= 4
+        case .same: dayBias += 2
+        case .generatedBy: dayBias += 3
+        case .generates: dayBias += 1
+        case .controls: dayBias -= 2
+        case .controlledBy: dayBias -= 3
         }
         notes.append("日干五行与\(chart.bureau.bureauName)为\(relation.rawValue)关系")
 
         let seed = chartSeed(chart) + "|" + ChineseCalendarConverter.localDateKey(date, timeZone: timeZone)
-        rawScore += stableOffset(seed, range: 4)
-        let score = clamp(rawScore)
-        let status = status(for: score)
+        dayBias += stableOffset(seed, range: 3)
 
         let dimensions = [
-            dimension("事业", palace: chart.palace(.career), overall: score, chart: chart, dayTransformations: dayTransformations, seed: seed + "career"),
-            dimension("财务", palace: chart.palace(.wealth), overall: score, chart: chart, dayTransformations: dayTransformations, seed: seed + "wealth"),
-            dimension("人际", palace: chart.palace(.spouse), secondary: chart.palace(.friends), overall: score, chart: chart, dayTransformations: dayTransformations, seed: seed + "relationship"),
-            dimension("身心", palace: chart.palace(.health), secondary: chart.palace(.fortune), overall: score, chart: chart, dayTransformations: dayTransformations, seed: seed + "wellbeing")
+            dimension("事业", palace: chart.palace(.career), chart: chart, dayTransformations: dayTransformations, dayBias: dayBias, seed: seed + "career"),
+            dimension("财务", palace: chart.palace(.wealth), chart: chart, dayTransformations: dayTransformations, dayBias: dayBias, seed: seed + "wealth"),
+            dimension("人际", palace: chart.palace(.spouse), secondary: chart.palace(.friends), chart: chart, dayTransformations: dayTransformations, dayBias: dayBias, seed: seed + "relationship"),
+            dimension("身心", palace: chart.palace(.health), secondary: chart.palace(.fortune), chart: chart, dayTransformations: dayTransformations, dayBias: dayBias, seed: seed + "wellbeing")
         ]
+        // 综合分 = 四项算术平均，保证总分永远落在四个分项之间，不会出现「总分 75、四项最高 77」这类矛盾
+        let average = Double(dimensions.reduce(0) { $0 + $1.score }) / Double(dimensions.count)
+        let score = clamp(Int(average.rounded()))
+        let status = status(for: score)
+        let averageText = dimensions.map { "\($0.title) \($0.score)" }.joined(separator: " · ")
+        notes.insert("综合分为四项平均：\(averageText) → \(score) 分", at: min(1, notes.count))
+
         let strongest = dimensions.max { $0.score < $1.score }!
         let weakest = dimensions.min { $0.score < $1.score }!
         let primaryStar = activePalace.mainStars.first ?? borrowedStars.first
@@ -96,13 +78,17 @@ public enum FortuneEngine {
         case 55..<65: headline = "宜稳宜缓，减少多线消耗"
         default: headline = "收敛蓄力，先照顾好自己"
         }
-        let summary = "今日流日落入\(activePalace.kind.rawValue)，\(strongest.title)相对占优，\(weakest.title)需要多留余地。\(profile?.keyword ?? "保持弹性")是今天可借力的主题。"
-        var highlights = ["\(strongest.title) \(strongest.score) 分，是今天较顺的一项"]
-        if let primaryStar { highlights.append("\(primaryStar.rawValue)主调：\(StarCatalog.profile(primaryStar).keyword)") }
-        highlights.append("流日为\(Ganzhi.string(dayIndex))，重点关注\(activePalace.kind.focus)")
+        let summary = "今日流日落入\(activePalace.kind.rawValue)，四项里\(strongest.title)最高（\(strongest.score) 分），\(weakest.title)最低（\(weakest.score) 分），综合 \(score) 分。\(profile?.keyword ?? "保持弹性")是今天可借力的主题。"
+        var highlights = ["\(strongest.title) \(strongest.score) 分，四项中最高"]
+        if let primaryStar {
+            highlights.append("流日命宫\(primaryStar.rawValue)：\(StarCatalog.profile(primaryStar).keyword)")
+        } else {
+            highlights.append("流日命宫无主星，借对宫节奏")
+        }
+        highlights.append("流日\(Ganzhi.string(dayIndex)) · \(activePalace.kind.rawValue)当值")
         let actions = [profile?.action ?? "先完成一件确定性较高的小事", "把\(strongest.title)方面的优势用在最重要的一件事上"]
         var cautions = [profile?.caution ?? "避免临时增加过多安排"]
-        cautions.append("\(weakest.title)分数较低：\(weakest.note)，宜降低负荷并核对细节")
+        cautions.append("\(weakest.title) \(weakest.score) 分，四项里最需留意：\(weakest.note)，宜降低负荷并核对细节")
 
         let yearTransformations = ChartEngine.transformations(for: lunar.yearStem, source: .year)
         let yearLu = yearTransformations.first { $0.kind == .lu }
@@ -143,9 +129,9 @@ public enum FortuneEngine {
         _ title: String,
         palace: Palace,
         secondary: Palace? = nil,
-        overall: Int,
         chart: Chart,
         dayTransformations: [Transformation],
+        dayBias: Int,
         seed: String
     ) -> DimensionScore {
         var quality = palace.mainStars.reduce(0) { $0 + StarCatalog.profile($1).weight }
@@ -162,7 +148,9 @@ public enum FortuneEngine {
                 }
             }
         }
-        let score = clamp(overall + quality * 2 + stableOffset(seed, range: 4))
+        // 星曜与四化折算成有限幅度的加减，避免单宫星曜过多把分数顶到 100 或压到 0
+        let contribution = max(-20, min(20, quality * 2))
+        let score = clamp(68 + contribution + dayBias + stableOffset(seed, range: 3))
         let starNames = palace.mainStars.map(\.rawValue).joined(separator: "、")
         let note = starNames.isEmpty ? "空宫借对宫星曜，重在灵活应对" : "\(starNames)主调，\(StarCatalog.profile(palace.mainStars[0]).keyword)"
         return DimensionScore(title: title, score: score, note: note)

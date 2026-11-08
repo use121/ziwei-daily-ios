@@ -10,7 +10,7 @@ struct RootView: View {
                 .tabItem { Label("今日", systemImage: "sun.max") }
                 .tag(AppTab.today)
             ChartView()
-                .tabItem { Label("命盘", systemImage: "square.grid.4x4.fill") }
+                .tabItem { Label("命盘", systemImage: "square.grid.3x3.fill") }
                 .tag(AppTab.chart)
             InsightView()
                 .tabItem { Label("解读", systemImage: "text.book.closed") }
