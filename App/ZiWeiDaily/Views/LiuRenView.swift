@@ -2,8 +2,23 @@ import SwiftUI
 import UIKit
 import ZiWeiCore
 
+/// 顶栏「小六起卦」入口的外观，命盘页与今日页共用，保证两处一致。
+struct LiuRenEntryLabel: View {
+    var body: some View {
+        HStack(spacing: 3) {
+            Image(systemName: "hand.point.up.left.fill")
+                .font(.footnote)
+            Text("小六起卦")
+        }
+        .foregroundStyle(Theme.cinnabar)
+    }
+}
+
 /// 小六壬起课。一件事，此刻起一课，看末宫落处。
 struct LiuRenView: View {
+    /// 从哪一页进来，只用于返回按钮的无障碍文案（可见文字统一是「返回」）。
+    var origin: String = "紫微命盘"
+
     @Environment(\.dismiss) private var dismiss
     @StateObject private var log = LiuRenLog()
 
@@ -62,7 +77,7 @@ struct LiuRenView: View {
                     }
                     .foregroundStyle(Theme.cinnabar)
                 }
-                .accessibilityLabel("返回紫微命盘")
+                .accessibilityLabel("返回\(origin)")
             }
         }
         #if DEBUG

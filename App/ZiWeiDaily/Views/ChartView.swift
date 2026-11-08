@@ -86,14 +86,9 @@ struct ChartView: View {
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
                         NavigationLink {
-                            LiuRenView()
+                            LiuRenView(origin: "紫微命盘")
                         } label: {
-                            HStack(spacing: 3) {
-                                Image(systemName: "hand.point.up.left.fill")
-                                    .font(.footnote)
-                                Text("小六起卦")
-                            }
-                            .foregroundStyle(Theme.cinnabar)
+                            LiuRenEntryLabel()
                         }
                         .accessibilityLabel("小六起卦")
                     }

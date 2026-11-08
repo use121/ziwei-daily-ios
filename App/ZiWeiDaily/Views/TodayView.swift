@@ -3,6 +3,7 @@ import ZiWeiCore
 
 struct TodayView: View {
     @EnvironmentObject private var state: AppState
+    @State private var liuRenActive = false
 
     var body: some View {
         NavigationStack {
@@ -93,6 +94,14 @@ struct TodayView: View {
                 .background(Theme.paper)
                 .navigationTitle("紫微日常")
                 .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        NavigationLink {
+                            LiuRenView(origin: "今日")
+                        } label: {
+                            LiuRenEntryLabel()
+                        }
+                        .accessibilityLabel("小六起卦")
+                    }
                     ToolbarItem(placement: .topBarTrailing) {
                         ShareLink(item: state.shareText) {
                             Image(systemName: "square.and.arrow.up")
@@ -100,6 +109,16 @@ struct TodayView: View {
                         .accessibilityLabel("分享今日评分")
                     }
                 }
+                .navigationDestination(isPresented: $liuRenActive) {
+                    LiuRenView(origin: "今日")
+                }
+                #if DEBUG
+                .onAppear {
+                    if ProcessInfo.processInfo.environment["ZIWEI_LIUREN"] == "1" {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { liuRenActive = true }
+                    }
+                }
+                #endif
                 .refreshable { state.refreshToday() }
             } else {
                 EmptyStateView(
