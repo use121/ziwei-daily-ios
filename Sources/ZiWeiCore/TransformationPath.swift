@@ -110,6 +110,9 @@ public enum TopicScoreEngine {
         layer: TimeLayer,
         transforms: [TransformEntry]
     ) -> Int {
+        if topic == .guiren {
+            return benefactorScore(chart: chart, layer: layer, transforms: transforms)
+        }
         let branch = branch(for: topic, chart: chart, layer: layer)
         let palace = chart.palace(at: branch)
         var stars = palace.mainStars
@@ -151,6 +154,47 @@ public enum TopicScoreEngine {
         let lucky: Set<Star> = [.zuoFu, .youBi, .tianKui, .tianYue, .wenChang, .wenQu, .luCun, .tianMa]
         let luckyCount = palace.auxiliaryStars.filter { lucky.contains($0) }.count
         value += Double(luckyCount) * 1.6
+
+        return min(97, max(38, Int(value.rounded())))
+    }
+
+    /// 贵人运评分：看魁钺亮度、贵人星是否落入命宫三方四正、魁钺宫位是否见煞、本层四化是否引动。
+    private static func benefactorScore(chart: Chart, layer: TimeLayer, transforms: [TransformEntry]) -> Int {
+        let benefactors: [Star] = [.tianKui, .tianYue, .zuoFu, .youBi, .luCun, .enGuang, .tianGui]
+        let branches = benefactors.compactMap { chart.branch(of: $0) }
+        var value = 62.0
+
+        // 天魁天钺的亮度直接决定贵人星的力量
+        for star in [Star.tianKui, .tianYue] {
+            guard let branch = chart.branch(of: star),
+                  let level = BrightnessCatalog.brightness(of: star, at: branch) else { continue }
+            value += Double(level.weight) * 4.5
+        }
+
+        // 贵人星落入命宫三方四正，说明助力离自己近
+        let triad = Set(chart.triad(of: layer.pivotBranch))
+        for branch in branches where triad.contains(branch) {
+            value += 2.5
+        }
+
+        // 魁钺宫位见煞，助力打折
+        let sha: Set<Star> = [.qingYang, .tuoLuo, .huoXing, .lingXing, .diKong, .diJie]
+        for star in [Star.tianKui, .tianYue] {
+            guard let branch = chart.branch(of: star) else { continue }
+            let count = chart.palace(at: branch).auxiliaryStars.filter { sha.contains($0) }.count
+            value -= Double(count) * 3
+        }
+
+        // 本层四化引动贵人宫位
+        let branchSet = Set(branches)
+        for entry in transforms where branchSet.contains(entry.branch) {
+            switch entry.kind {
+            case .lu: value += 7
+            case .quan: value += 4
+            case .ke: value += 6
+            case .ji: value -= 8
+            }
+        }
 
         return min(97, max(38, Int(value.rounded())))
     }

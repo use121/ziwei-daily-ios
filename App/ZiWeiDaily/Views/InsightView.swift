@@ -22,7 +22,7 @@ struct InsightView: View {
                         radarCard
                         transformationPathCard
                             .id("paths")
-                        topicFilter
+                        topicFilter(proxy)
 
                         ForEach(visibleInsights) { insight in
                             InsightCard(
@@ -33,6 +33,7 @@ struct InsightView: View {
                                     state.selectedTab = .chart
                                 }
                             )
+                            .id(insight.id)
                         }
 
                         basisCard(chart: chart, layer: layer)
@@ -43,9 +44,13 @@ struct InsightView: View {
                 }
                 #if DEBUG
                 .onAppear {
-                    if ProcessInfo.processInfo.environment["ZIWEI_SCROLL"] == "paths" {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                            proxy.scrollTo("paths", anchor: .top)
+                    let environment = ProcessInfo.processInfo.environment
+                    if let expand = environment["ZIWEI_EXPAND"], !expand.isEmpty {
+                        expanded.insert(expand)
+                    }
+                    if let target = environment["ZIWEI_SCROLL"], !target.isEmpty {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                            proxy.scrollTo(target == "paths" ? "paths" : target, anchor: .top)
                         }
                     }
                 }
@@ -85,14 +90,14 @@ struct InsightView: View {
     private func header(chart: Chart, layer: TimeLayer) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Text("\(layer.kind.rawValue) · 十三维解读")
+                Text("\(layer.kind.rawValue) · 十四维解读")
                     .font(.system(.title2, design: .serif, weight: .semibold))
                     .foregroundStyle(Theme.ink)
                 if state.isProUnlocked {
                     TagPill(text: "专业版已解锁", color: Theme.gold)
                 }
             }
-            Text("核心六维看主线，其余七宫看细节；格局与四化由当前时间层推算，同一张盘同一层，结论不随刷新变化。")
+            Text("核心六维看主线，贵人与七宫看细节；格局与四化由当前时间层推算，同一张盘同一层，结论不随刷新变化。")
                 .font(.caption)
                 .foregroundStyle(Theme.secondaryInk)
         }
@@ -143,31 +148,64 @@ struct InsightView: View {
         .ziWeiCard()
     }
 
-    private var topicFilter: some View {
-        HStack(spacing: 8) {
-            ForEach([false, true], id: \.self) { all in
-                Button {
-                    withAnimation(.easeOut(duration: 0.18)) { showAllTopics = all }
-                } label: {
-                    Text(all ? "全部十三维" : "核心六维")
-                        .font(.system(size: 12, weight: (showAllTopics == all) ? .semibold : .regular))
-                        .foregroundStyle(showAllTopics == all ? Theme.cinnabar : Theme.secondaryInk)
-                        .padding(.horizontal, 11)
-                        .padding(.vertical, 6)
-                        .background(
-                            Capsule().fill(showAllTopics == all ? Theme.cinnabarLight.opacity(0.5) : Theme.card)
-                        )
-                        .overlay(
-                            Capsule().stroke(Theme.line.opacity(showAllTopics == all ? 0.7 : 0.4), lineWidth: 0.6)
-                        )
+    private func topicFilter(_ proxy: ScrollViewProxy) -> some View {
+        VStack(alignment: .leading, spacing: 9) {
+            HStack(spacing: 8) {
+                ForEach([false, true], id: \.self) { all in
+                    Button {
+                        withAnimation(.easeOut(duration: 0.18)) { showAllTopics = all }
+                    } label: {
+                        Text(all ? "全部十四维" : "核心六维")
+                            .font(.system(size: 12, weight: (showAllTopics == all) ? .semibold : .regular))
+                            .foregroundStyle(showAllTopics == all ? Theme.cinnabar : Theme.secondaryInk)
+                            .padding(.horizontal, 11)
+                            .padding(.vertical, 6)
+                            .background(
+                                Capsule().fill(showAllTopics == all ? Theme.cinnabarLight.opacity(0.5) : Theme.card)
+                            )
+                            .overlay(
+                                Capsule().stroke(Theme.line.opacity(showAllTopics == all ? 0.7 : 0.4), lineWidth: 0.6)
+                            )
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
+                Spacer()
+                Text("\(visibleInsights.count) 项")
+                    .font(.caption2)
+                    .foregroundStyle(Theme.secondaryInk)
             }
-            Spacer()
-            Text("\(visibleInsights.count) 项")
-                .font(.caption2)
-                .foregroundStyle(Theme.secondaryInk)
+
+            // 其余维度不藏起来：核心六维之外的主题直接给一排可点入口
+            if !showAllTopics {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("另有 \(extraTopics.count) 个维度：点开直接跳过去")
+                        .font(.caption2)
+                        .foregroundStyle(Theme.secondaryInk)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 7) {
+                            ForEach(extraTopics) { topic in
+                                Button {
+                                    withAnimation(.easeOut(duration: 0.18)) { showAllTopics = true }
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+                                        withAnimation(.easeOut(duration: 0.3)) {
+                                            proxy.scrollTo(topic.rawValue, anchor: .top)
+                                        }
+                                    }
+                                } label: {
+                                    TagPill(text: topic.rawValue, color: Theme.gold)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.vertical, 1)
+                    }
+                }
+            }
         }
+    }
+
+    private var extraTopics: [InsightTopic] {
+        InsightTopic.allCases.filter { !$0.isCore }
     }
 
     private func basisCard(chart: Chart, layer: TimeLayer) -> some View {

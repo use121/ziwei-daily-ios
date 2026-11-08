@@ -138,7 +138,7 @@ public enum StarVoices {
     }
 }
 
-/// 解读主题：核心六维 + 七宫细读，共十三维。
+/// 解读主题：核心六维 + 贵人分析 + 七宫细读，共十四维。
 public enum InsightTopic: String, Codable, CaseIterable, Identifiable, Sendable {
     case overview = "命格"
     case personality = "性格"
@@ -150,6 +150,7 @@ public enum InsightTopic: String, Codable, CaseIterable, Identifiable, Sendable 
     case children = "子女"
     case travel = "迁移"
     case friends = "交友"
+    case guiren = "贵人"
     case property = "田宅"
     case fortune = "福德"
     case parents = "父母"
@@ -172,6 +173,7 @@ public enum InsightTopic: String, Codable, CaseIterable, Identifiable, Sendable 
         case .children: .children
         case .travel: .travel
         case .friends: .friends
+        case .guiren: .life
         case .property: .property
         case .fortune: .fortune
         case .parents: .parents
@@ -190,6 +192,7 @@ public enum InsightTopic: String, Codable, CaseIterable, Identifiable, Sendable 
         case .children: "figure.child"
         case .travel: "airplane"
         case .friends: "person.3"
+        case .guiren: "person.crop.circle.badge.checkmark"
         case .property: "house"
         case .fortune: "moon.stars"
         case .parents: "book.closed"
@@ -208,6 +211,7 @@ public enum InsightTopic: String, Codable, CaseIterable, Identifiable, Sendable 
         case .children: "子女宫与创作成果"
         case .travel: "迁移宫与外部机会"
         case .friends: "交友宫与团队人际"
+        case .guiren: "魁钺辅弼与贵人来源"
         case .property: "田宅宫与长期积累"
         case .fortune: "福德宫与精神弹性"
         case .parents: "父母宫与制度长辈"
@@ -244,6 +248,7 @@ public enum InsightEngine {
             case .career: career(chart: chart, layer: layer)
             case .wealth: wealth(chart: chart, layer: layer)
             case .health: health(chart: chart, layer: layer)
+            case .guiren: benefactor(chart: chart, layer: layer)
             default: palaceInsight(topic: topic, chart: chart, layer: layer)
             }
         }
@@ -446,6 +451,132 @@ public enum InsightEngine {
             borrowsOpposite: palace.mainStars.isEmpty,
             caution: "健康内容属传统取象，不能替代医疗诊断。"
         )
+    }
+
+    // MARK: - 贵人
+
+    /// 贵人分析：天魁（明贵人）、天钺（暗贵人）、左辅右弼（同辈助力）、禄存（衣食之助）、恩光天贵（声誉提携）。
+    /// 不按单宫看，而是看这些「贵人星」各自坐在哪一宫，判断助力从哪个领域来。
+    private static func benefactor(chart: Chart, layer: TimeLayer) -> Insight {
+        struct BenefactorEntry {
+            let star: Star
+            let role: String
+            let flavor: String
+            let branch: Int
+            let kind: PalaceKind
+        }
+        let catalog: [(star: Star, role: String, flavor: String)] = [
+            (.tianKui, "明贵人", "长辈、上司与公开的提携"),
+            (.tianYue, "暗贵人", "私下相助、意外出现的援手"),
+            (.zuoFu, "同辈助力", "身边能一起扛事的实干派"),
+            (.youBi, "牵线助力", "善于引荐、搭桥、补位的人"),
+            (.luCun, "衣食之助", "带来资源、供养与保障的人"),
+            (.enGuang, "声誉之助", "因资历与名声而来的机会"),
+            (.tianGui, "礼遇之助", "正式场合里的引荐与抬举")
+        ]
+        var entries: [BenefactorEntry] = []
+        for item in catalog {
+            guard let branch = chart.branch(of: item.star) else { continue }
+            entries.append(BenefactorEntry(
+                star: item.star,
+                role: item.role,
+                flavor: item.flavor,
+                branch: branch,
+                kind: chart.palaceKind(at: branch, pivot: layer.pivotBranch)
+            ))
+        }
+
+        let kui = entries.first { $0.star == .tianKui }
+        let yue = entries.first { $0.star == .tianYue }
+        let kuiText = kui.map { "天魁坐\($0.kind.rawValue)宫" } ?? "天魁未上盘"
+        let yueText = yue.map { "天钺坐\($0.kind.rawValue)宫" } ?? "天钺未上盘"
+        let headline = "\(kuiText)、\(yueText)：贵人多来自\(benefactorDomain(kui?.kind ?? .life))，以及\(benefactorDomain(yue?.kind ?? .friends))。"
+
+        var blocks: [InsightBlock] = []
+        let layoutText = entries.map { "\($0.star.rawValue)（\($0.role)）坐\($0.kind.rawValue)宫（\(Ganzhi.branches[$0.branch])）" }.joined(separator: "、")
+        blocks.append(.init(
+            heading: "贵人格局",
+            body: "本命盘贵人星共 \(entries.count) 颗：\(layoutText)。天魁主明、天钺主暗，一明一暗相互配合——明面上有人提携，暗地里也有人递梯子。魁钺若分居两宫，说明助力不止来自一个方向。"
+        ))
+
+        let grouped = Dictionary(grouping: entries, by: \.kind)
+        let sourceLines = PalaceKind.allCases.compactMap { kind -> String? in
+            guard let group = grouped[kind], !group.isEmpty else { return nil }
+            let stars = group.map(\.star.rawValue).joined(separator: "、")
+            let detail = group.map { "\($0.star.rawValue)偏\($0.flavor)" }.joined(separator: "，")
+            return "· \(kind.rawValue)宫（\(stars)）：来自\(benefactorDomain(kind))；\(detail)。"
+        }
+        blocks.append(.init(
+            heading: "贵人来源",
+            body: "助力分落在 \(sourceLines.count) 个宫位：\n" + sourceLines.joined(separator: "\n")
+        ))
+
+        blocks.append(.init(
+            heading: "借力方式",
+            body: "魁钺的用法在「主动」：把目标和进度讲清楚，长辈与上司才知道怎么帮你；辅弼的用法在「互助」：先替别人补位，轮到自己时别客气。贵人星落宫只说明接应的方向，不开口、不露面，助力就不会自己发生。"
+        ))
+
+        // 本层四化对贵人宫位的引动
+        let branchSet = Set(entries.map(\.branch))
+        var lifted: [String] = []
+        var blocked: [String] = []
+        for transformation in layer.transformations {
+            guard let branch = chart.branch(of: transformation.star), branchSet.contains(branch) else { continue }
+            let kind = chart.palaceKind(at: branch, pivot: layer.pivotBranch)
+            let hosts = entries.filter { $0.branch == branch }.map(\.star.rawValue).joined(separator: "、")
+            switch transformation.kind {
+            case .lu, .ke:
+                lifted.append("\(transformation.star.rawValue)\(transformation.kind.rawValue)入\(kind.rawValue)宫，引动\(hosts)")
+            case .quan:
+                lifted.append("\(transformation.star.rawValue)化权入\(kind.rawValue)宫，\(hosts)所在领域权责上移")
+            case .ji:
+                blocked.append("\(transformation.star.rawValue)化忌入\(kind.rawValue)宫，\(hosts)受阻")
+            }
+        }
+        let phaseLabel = layer.kind == .natal ? "生年四化" : "\(layer.kind.rawValue)四化"
+        var timing = lifted.isEmpty
+            ? "\(phaseLabel)没有直接点亮贵人宫位，助力以常态存在，需要多走一步主动联系。"
+            : "\(phaseLabel)中，\(lifted.joined(separator: "；"))——此时开口求助、托人引荐，接应最快。"
+        if !blocked.isEmpty {
+            timing += "同时要留意：\(blocked.joined(separator: "；"))，托付的事容易被耽搁，重要安排留一个备选方案。"
+        }
+        blocks.append(.init(heading: "\(layer.kind.rawValue)引动", body: timing))
+
+        let sha: Set<Star> = [.qingYang, .tuoLuo, .huoXing, .lingXing, .diKong, .diJie]
+        let shaHits = [kui, yue].compactMap { $0 }.filter { entry in
+            chart.palace(at: entry.branch).auxiliaryStars.contains { sha.contains($0) }
+        }
+        let caution = shaHits.isEmpty
+            ? "贵人星齐全不等于事事有人帮：把需求说具体、把进度做出来，接应才会出现。"
+            : "\(shaHits.map(\.star.rawValue).joined(separator: "、"))宫位同见煞星，帮助容易附带条件或迟到；接受援手前先把权责讲清。"
+
+        return Insight(
+            topic: .guiren,
+            headline: headline,
+            blocks: blocks,
+            keyStars: entries.map(\.star),
+            palaceBranch: kui?.branch ?? chart.lifeBranch,
+            borrowsOpposite: false,
+            caution: caution
+        )
+    }
+
+    /// 贵人星的落宫对应到现实中的助力来源。
+    private static func benefactorDomain(_ kind: PalaceKind) -> String {
+        switch kind {
+        case .life: "与自己性情相投的人"
+        case .siblings: "兄弟姐妹与同辈"
+        case .spouse: "伴侣及伴侣的家庭"
+        case .children: "晚辈、学生与创作伙伴"
+        case .wealth: "带来商机与资源的人"
+        case .health: "医生、照料者与专业人士"
+        case .travel: "出门在外遇到的人、外地与远方的资源"
+        case .friends: "朋友、团队与下属"
+        case .career: "职场中的领导、合作方与客户"
+        case .property: "家族、邻里与不动产相关的人脉"
+        case .fortune: "兴趣圈层、师承与精神引路人"
+        case .parents: "长辈、上司与制度内的提携者"
+        }
     }
 
     // MARK: - 单宫解读

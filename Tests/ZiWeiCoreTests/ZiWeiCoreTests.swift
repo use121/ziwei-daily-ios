@@ -244,7 +244,7 @@ final class ZiWeiCoreTests: XCTestCase {
         let first = InsightEngine.insights(for: chart, layer: layer)
         let second = InsightEngine.insights(for: chart, layer: layer)
         XCTAssertEqual(first, second)
-        XCTAssertEqual(first.count, 13)
+        XCTAssertEqual(first.count, 14)
         XCTAssertEqual(first.map(\.topic), InsightTopic.allCases)
         for insight in first {
             XCTAssertFalse(insight.headline.isEmpty)
@@ -353,7 +353,7 @@ final class ZiWeiCoreTests: XCTestCase {
         let chart = try ChartEngine.makeChart(from: input(date(1990, 6, 15, 9, 30)), referenceDate: date(2026, 11, 8))
         let layer = chart.timeLayer(kind: .natal, on: date(2026, 11, 8))
         let scores = TopicScoreEngine.scores(chart: chart, layer: layer)
-        XCTAssertEqual(scores.count, 13)
+        XCTAssertEqual(scores.count, 14)
         for item in scores {
             XCTAssertGreaterThanOrEqual(item.score, 38)
             XCTAssertLessThanOrEqual(item.score, 97)
@@ -380,7 +380,7 @@ final class ZiWeiCoreTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(names.count, 3, "格局类型应有足够多样性")
     }
 
-    func testThirteenTopicsHaveContent() throws {
+    func testFourteenTopicsHaveContent() throws {
         let chart = try ChartEngine.makeChart(from: input(date(1990, 6, 15, 9, 30)), referenceDate: date(2026, 11, 8))
         let layer = chart.timeLayer(kind: .year, year: 2026, on: date(2026, 11, 8))
         let insights = InsightEngine.insights(for: chart, layer: layer)
@@ -391,6 +391,36 @@ final class ZiWeiCoreTests: XCTestCase {
             XCTAssertGreaterThanOrEqual(insight.blocks.count, 3)
             XCTAssertTrue(insight.blocks.allSatisfy { !$0.body.isEmpty })
         }
+    }
+
+    // MARK: - 贵人分析
+
+    func testBenefactorInsightContent() throws {
+        let chart = try ChartEngine.makeChart(from: input(date(1990, 6, 15, 9, 30)), referenceDate: date(2026, 11, 8))
+        let layer = chart.timeLayer(kind: .natal, on: date(2026, 11, 8))
+        let insights = InsightEngine.insights(for: chart, layer: layer)
+        let guiren = insights.first { $0.topic == .guiren }!
+        // 魁钺必然上盘，贵人星至少七颗里出现五颗以上（魁钺辅弼禄存恒有）
+        XCTAssertGreaterThanOrEqual(guiren.keyStars.count, 5)
+        XCTAssertTrue(guiren.keyStars.contains(.tianKui))
+        XCTAssertTrue(guiren.keyStars.contains(.tianYue))
+        XCTAssertTrue(guiren.headline.contains("天魁"))
+        XCTAssertTrue(guiren.headline.contains("天钺"))
+        // 四段式：格局 / 来源 / 借力 / 引动
+        XCTAssertEqual(guiren.blocks.map(\.heading), ["贵人格局", "贵人来源", "借力方式", "\(layer.kind.rawValue)引动"])
+        for block in guiren.blocks {
+            XCTAssertFalse(block.body.isEmpty)
+        }
+        // 贵人运评分在合法区间且确定性
+        let scores = TopicScoreEngine.scores(chart: chart, layer: layer)
+        let guirenScore = scores.first { $0.topic == .guiren }!
+        XCTAssertGreaterThanOrEqual(guirenScore.score, 38)
+        XCTAssertLessThanOrEqual(guirenScore.score, 97)
+        // 换流年层，贵人来源宫位随时间层旋转
+        let yearLayer = chart.timeLayer(kind: .year, year: 2027, on: date(2026, 11, 8))
+        let yearInsights = InsightEngine.insights(for: chart, layer: yearLayer)
+        let yearGuiren = yearInsights.first { $0.topic == .guiren }!
+        XCTAssertFalse(yearGuiren.headline.isEmpty)
     }
 
     // MARK: - P2 内核

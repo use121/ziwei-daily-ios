@@ -278,7 +278,7 @@ final class AppState: ObservableObject {
         return TransformationPathEngine.summary(chart: chart, layer: layer)
     }
 
-    /// 十三维强弱评分，供雷达图使用。
+    /// 十四维强弱评分，供雷达图使用。
     var topicScores: [TopicScore] {
         guard let chart, let layer = currentLayer else { return [] }
         return TopicScoreEngine.scores(chart: chart, layer: layer)
@@ -350,7 +350,7 @@ final class AppState: ObservableObject {
         """
     }
 
-    /// 全盘报告：命盘摘要 + 十三维 + 格局 + 四化。
+    /// 全盘报告：命盘摘要 + 十四维 + 格局 + 四化。
     var fullReportText: String {
         guard let chart, let layer = currentLayer else { return "" }
         let name = input.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -361,7 +361,7 @@ final class AppState: ObservableObject {
         lines.append("阳历 \(chart.resolvedBirth.lunarDate.gregorianYear) 年 · 农历 \(chart.resolvedBirth.lunarDate.displayText) · \(chart.bureau.bureauName)")
         lines.append("命宫在\(Ganzhi.branches[chart.lifeBranch])｜身宫在\(Ganzhi.branches[chart.bodyBranch])｜命主\(chart.soulMaster.rawValue)｜身主\(chart.bodyMaster.rawValue)")
         lines.append("")
-        lines.append("【十三维】")
+        lines.append("【十四维】")
         for score in topicScores {
             lines.append("\(score.topic.rawValue) \(score.score)")
         }
