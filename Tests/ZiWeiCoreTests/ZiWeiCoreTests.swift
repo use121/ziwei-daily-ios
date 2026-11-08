@@ -858,4 +858,219 @@ final class ZiWeiCoreTests: XCTestCase {
         XCTAssertEqual(ChineseDayName.text(day: 23), "廿三")
         XCTAssertEqual(ChineseDayName.text(day: 30), "三十")
     }
+
+    // MARK: - 岁前 / 将前十二神
+
+    func testSuiQianStartsAtAnchorAndRunsForward() {
+        // 庚午年：岁建在午，其后顺行，第七位岁破落在子
+        let placement = TwelveGods.placement(sequence: .suiQian, anchorBranch: 6)
+        XCTAssertEqual(placement.count, 12)
+        XCTAssertEqual(placement[6]?.name, "岁建")
+        XCTAssertEqual(placement[7]?.name, "晦气")
+        XCTAssertEqual(placement[0]?.name, "岁破", "岁建对宫写作岁破")
+        XCTAssertEqual(placement[5]?.name, "病符")
+        XCTAssertEqual(Set(placement.values.map(\.name)).count, 12)
+        XCTAssertEqual(Set(placement.values.map(\.name)), Set(TwelveGods.suiQianNames))
+    }
+
+    func testJiangXingSitsAtTrinePeak() {
+        // 申子辰见子、巳酉丑见酉、寅午戌见午、亥卯未见卯
+        for branch in 0..<12 {
+            let peak = TwelveGods.jiangXingBranch(anchorBranch: branch)
+            let group = branch % 4
+            XCTAssertEqual(peak, [0, 9, 6, 3][group], "\(Ganzhi.branches[branch])年的将星应落 \(Ganzhi.branches[[0, 9, 6, 3][group]])")
+        }
+        XCTAssertEqual(TwelveGods.jiangXingBranch(anchorBranch: 6), 6, "午年将星在午")
+        XCTAssertEqual(TwelveGods.jiangXingBranch(anchorBranch: 0), 0, "子年将星在子")
+        XCTAssertEqual(TwelveGods.jiangXingBranch(anchorBranch: 9), 9, "酉年将星在酉")
+        XCTAssertEqual(TwelveGods.jiangXingBranch(anchorBranch: 3), 3, "卯年将星在卯")
+    }
+
+    func testJiangQianRunsForwardFromJiangXing() {
+        let placement = TwelveGods.placement(sequence: .jiangQian, anchorBranch: 2) // 寅年，将星在午
+        XCTAssertEqual(placement[6]?.name, "将星")
+        XCTAssertEqual(placement[7]?.name, "攀鞍")
+        XCTAssertEqual(placement[5]?.name, "亡神")
+        XCTAssertEqual(Set(placement.values.map(\.name)), Set(TwelveGods.jiangQianNames))
+    }
+
+    func testGodTableCoversTwelvePalaces() throws {
+        let chart = try ChartEngine.makeChart(from: input(date(1990, 6, 15, 9, 30)), referenceDate: date(2026, 11, 8))
+        for kind in TimeLayerKind.allCases {
+            let layer = chart.timeLayer(kind: kind, month: 6, on: date(2026, 11, 8))
+            let table = chart.godTable(for: layer)
+            XCTAssertEqual(table.count, 12, "\(kind.rawValue)层应有十二宫")
+            XCTAssertEqual(Set(table.map(\.branch)).count, 12)
+            XCTAssertEqual(Set(table.map(\.suiQian.name)).count, 12)
+            XCTAssertEqual(Set(table.map(\.jiangQian.name)).count, 12)
+            for row in table {
+                XCTAssertEqual(row.suiQian.sequence, .suiQian)
+                XCTAssertFalse(row.suiQian.gist.isEmpty)
+                XCTAssertFalse(row.jiangQian.gist.isEmpty)
+            }
+        }
+    }
+
+    func testGodAnchorUsesYearBranchForNatalOnly() throws {
+        let chart = try ChartEngine.makeChart(from: input(date(1990, 6, 15, 9, 30)), referenceDate: date(2026, 11, 8))
+        let natal = chart.timeLayer(kind: .natal, on: date(2026, 11, 8))
+        XCTAssertEqual(chart.godAnchor(for: natal), Ganzhi.mod(chart.resolvedBirth.lunarDate.yearBranch, 12))
+        XCTAssertEqual(chart.suiQianGod(layer: natal, branch: chart.godAnchor(for: natal))?.name, "岁建")
+
+        let year = chart.timeLayer(kind: .year, year: 2026, on: date(2026, 11, 8))
+        XCTAssertEqual(chart.godAnchor(for: year), Ganzhi.mod(year.pivotBranch, 12))
+        XCTAssertEqual(chart.suiQianGod(layer: year, branch: year.pivotBranch)?.name, "岁建")
+    }
+
+    func testTwelveGodLoreIsCompleteAndNeutral() {
+        XCTAssertEqual(TwelveGods.suiQianNames.count, 12)
+        XCTAssertEqual(TwelveGods.jiangQianNames.count, 12)
+        let banned = ["必死", "必定", "必然破财", "必遭", "一定会", "注定"]
+        for sequence in GodSequence.allCases {
+            for name in sequence.names {
+                let gist = TwelveGods.gist(sequence: sequence, name: name)
+                XCTAssertFalse(gist.isEmpty, "\(name) 缺释义")
+                for word in banned {
+                    XCTAssertFalse(gist.contains(word), "\(name) 含绝对化措辞：\(word)")
+                }
+            }
+        }
+    }
+
+    // MARK: - 格局库
+
+    /// 用一批样本盘把格局跑一遍，收集出现过的全部格局。
+    private func patternCensus() throws -> [ZiWeiCore.Pattern] {
+        var seen: [String: ZiWeiCore.Pattern] = [:]
+        for year in [1962, 1972, 1983, 1990, 1996, 2003, 2011, 2019] {
+            for month in [1, 3, 6, 9, 12] {
+                for hour in [0, 6, 12, 18] {
+                    let chart = try ChartEngine.makeChart(
+                        from: input(date(year, month, 10, hour)),
+                        referenceDate: date(2026, 11, 8)
+                    )
+                    for kind in TimeLayerKind.allCases {
+                        let layer = chart.timeLayer(kind: kind, month: max(1, month), on: date(2026, 11, 8))
+                        for pattern in PatternEngine.patterns(for: chart, layer: layer) {
+                            seen[pattern.name] = pattern
+                        }
+                    }
+                }
+            }
+        }
+        return seen.values.sorted { $0.name < $1.name }
+    }
+
+    func testPatternLibraryBreadth() throws {
+        let census = try patternCensus()
+        XCTAssertGreaterThanOrEqual(census.count, 30, "样本应能覆盖三十种以上格局，实际 \(census.count)")
+    }
+
+    func testEveryPatternIsDocumented() throws {
+        let banned = ["必死", "必定", "一定会", "必遭", "必然破财", "注定"]
+        for pattern in try patternCensus() {
+            XCTAssertFalse(pattern.summary.isEmpty, "\(pattern.name) 缺摘要")
+            XCTAssertFalse(pattern.detail.isEmpty, "\(pattern.name) 缺详解")
+            XCTAssertFalse(pattern.required.isEmpty, "\(pattern.name) 缺成立条件")
+            XCTAssertFalse(pattern.branchText.isEmpty)
+            for word in banned {
+                XCTAssertFalse(pattern.detail.contains(word), "\(pattern.name) 详解含绝对化措辞：\(word)")
+                XCTAssertFalse(pattern.summary.contains(word), "\(pattern.name) 摘要含绝对化措辞：\(word)")
+            }
+            // 破格一旦触发，就不该仍标为吉格
+            if !pattern.breaking.isEmpty {
+                XCTAssertNotEqual(pattern.kind, .auspicious, "\(pattern.name) 已破格却仍标吉格")
+            }
+        }
+    }
+
+    func testPatternNamesAreUniquePerChart() throws {
+        for year in [1972, 1990, 2003] {
+            let chart = try ChartEngine.makeChart(from: input(date(year, 5, 12, 8)), referenceDate: date(2026, 11, 8))
+            for kind in TimeLayerKind.allCases {
+                let layer = chart.timeLayer(kind: kind, month: 5, on: date(2026, 11, 8))
+                let names = PatternEngine.patterns(for: chart, layer: layer).map(\.name)
+                XCTAssertEqual(names.count, Set(names).count, "\(year)/\(kind.rawValue) 层格局重名")
+            }
+        }
+    }
+
+    func testPatternSortPutsAuspiciousFirst() throws {
+        let chart = try ChartEngine.makeChart(from: input(date(1990, 6, 15, 9, 30)), referenceDate: date(2026, 11, 8))
+        let layer = chart.timeLayer(kind: .natal, on: date(2026, 11, 8))
+        let kinds = PatternEngine.patterns(for: chart, layer: layer).map(\.kind.rank)
+        XCTAssertEqual(kinds, kinds.sorted(), "格局应先吉格、再常格、最后留意")
+    }
+
+    // MARK: - 古籍
+
+    func testClassicWorksAreComplete() {
+        XCTAssertEqual(ClassicLibrary.works.count, 3)
+        var ids: Set<String> = []
+        for work in ClassicLibrary.works {
+            XCTAssertFalse(work.intro.isEmpty)
+            XCTAssertFalse(work.note.isEmpty)
+            XCTAssertGreaterThanOrEqual(work.passages.count, 25, "\(work.title) 段落过少")
+            XCTAssertGreaterThan(work.wordCount, 500, "\(work.title) 正文过短")
+            XCTAssertFalse(work.sections.isEmpty)
+            for passage in work.passages {
+                XCTAssertFalse(passage.original.isEmpty)
+                XCTAssertFalse(passage.plain.isEmpty)
+                XCTAssertFalse(passage.section.isEmpty)
+                XCTAssertTrue(ids.insert(passage.id).inserted, "段落 id 重复：\(passage.id)")
+            }
+        }
+        XCTAssertNotNil(ClassicLibrary.work("太微赋"))
+        XCTAssertNotNil(ClassicLibrary.work("斗数骨髓赋"))
+        XCTAssertNotNil(ClassicLibrary.work("形性赋"))
+    }
+
+    /// 涉及自伤方式与人身侮辱的句子按编纂原则不录。
+    func testClassicTextsOmitHarmfulLines() {
+        let all = ClassicLibrary.works.flatMap(\.passages).map(\.original).joined()
+        for banned in ["缢死", "投河", "必为娼"] {
+            XCTAssertFalse(all.contains(banned), "古籍正文不应出现：\(banned)")
+        }
+    }
+
+    /// 宿命论式的重语必须紧跟「今按」，否则不该单独出现。
+    func testHeavyDeterministicLinesCarryNotes() {
+        let heavy = ["必定死亡", "须当刑戮", "路上埋尸", "夭折孤贫", "粉骨碎尸", "水中作冢"]
+        for passage in ClassicLibrary.works.flatMap(\.passages) {
+            for word in heavy where passage.original.contains(word) {
+                XCTAssertNotNil(passage.note, "含「\(word)」的段落缺少今按")
+            }
+        }
+    }
+
+    func testClassicLibraryCoversPatterns() throws {
+        let census = try patternCensus()
+        let covered = census.filter { ClassicLibrary.quote(for: $0.name) != nil }
+        XCTAssertGreaterThanOrEqual(covered.count, 25, "至少二十五种格局应能对上古籍摘句，实际 \(covered.count)")
+        for quote in ClassicLibrary.quotes {
+            XCTAssertFalse(quote.original.isEmpty)
+            XCTAssertFalse(quote.plain.isEmpty)
+            XCTAssertTrue(quote.source.contains("赋") || quote.source.contains("全书"))
+        }
+    }
+
+    func testStarVersesCoverMainStars() {
+        for star in Star.mainStars {
+            let verse = ClassicLibrary.verse(for: star)
+            XCTAssertNotNil(verse, "\(star.rawValue) 缺星性条目")
+            XCTAssertFalse(verse!.plain.isEmpty)
+            XCTAssertFalse(verse!.traits.isEmpty)
+        }
+        XCTAssertGreaterThanOrEqual(ClassicLibrary.starVerses.count, 20)
+    }
+
+    func testClassicSearch() {
+        XCTAssertFalse(ClassicLibrary.search("紫府").isEmpty)
+        XCTAssertFalse(ClassicLibrary.search("化忌").isEmpty)
+        XCTAssertFalse(ClassicLibrary.search("太微赋").isEmpty, "应能按篇名命中")
+        XCTAssertTrue(ClassicLibrary.search("").isEmpty)
+        XCTAssertTrue(ClassicLibrary.search("   ").isEmpty)
+        XCTAssertTrue(ClassicLibrary.search("这几个字书里没有").isEmpty)
+        XCTAssertLessThanOrEqual(ClassicLibrary.search("星", limit: 5).count, 5)
+    }
 }

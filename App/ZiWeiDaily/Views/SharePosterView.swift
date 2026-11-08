@@ -78,7 +78,7 @@ struct SharePosterView: View {
     private var patternBlock: some View {
         VStack(alignment: .leading, spacing: 8) {
             posterSectionTitle("格局")
-            ForEach(patterns) { pattern in
+            ForEach(Array(patterns.prefix(6))) { pattern in
                 HStack(spacing: 8) {
                     Text(pattern.name)
                         .font(.system(.subheadline, design: .serif, weight: .semibold))
@@ -94,6 +94,11 @@ struct SharePosterView: View {
                             .lineLimit(1)
                     }
                 }
+            }
+            if patterns.count > 6 {
+                Text("另 \(patterns.count - 6) 组见 App 内命盘页")
+                    .font(.caption2)
+                    .foregroundStyle(Theme.secondaryInk)
             }
         }
     }

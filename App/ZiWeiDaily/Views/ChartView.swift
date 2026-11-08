@@ -16,6 +16,7 @@ struct ChartView: View {
     @State private var selection: BranchSelection?
     @State private var posterShare: PosterShareItem?
     @State private var liuRenActive = false
+    @State private var classicsActive = false
 
     var body: some View {
         NavigationStack {
@@ -55,6 +56,9 @@ struct ChartView: View {
                             summaryItem("自化", chart.selfTransformations.isEmpty ? "无" : "\(chart.selfTransformations.count) 处")
                         }
 
+                        godCard(chart: chart, layer: layer)
+                            .id("gods")
+
                         transformationCard(chart: chart, layer: layer)
                         patternCard(layer: layer)
                             .id("patterns")
@@ -68,9 +72,10 @@ struct ChartView: View {
                 }
                 #if DEBUG
                 .onAppear {
-                    if ProcessInfo.processInfo.environment["ZIWEI_SCROLL"] == "patterns" {
+                    if let anchor = ProcessInfo.processInfo.environment["ZIWEI_SCROLL"],
+                       ["patterns", "gods", "classics"].contains(anchor) {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                            proxy.scrollTo("patterns", anchor: .top)
+                            proxy.scrollTo(anchor, anchor: .top)
                         }
                     }
                 }
@@ -105,10 +110,16 @@ struct ChartView: View {
                 .navigationDestination(isPresented: $liuRenActive) {
                     LiuRenView()
                 }
+                .navigationDestination(isPresented: $classicsActive) {
+                    ClassicsView()
+                }
                 #if DEBUG
                 .onAppear {
                     if ProcessInfo.processInfo.environment["ZIWEI_LIUREN"] == "1" {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { liuRenActive = true }
+                    }
+                    if ProcessInfo.processInfo.environment["ZIWEI_CLASSICS"] == "1" {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { classicsActive = true }
                     }
                 }
                 #endif
@@ -148,6 +159,44 @@ struct ChartView: View {
     }
 
     // MARK: - 区块
+
+    /// 岁前十二神与将前十二神：两组都以地支起宫、顺行十二宫。
+    private func godCard(chart: Chart, layer: TimeLayer) -> some View {
+        let table = chart.godTable(for: layer)
+        let anchor = chart.godAnchor(for: layer)
+        return VStack(alignment: .leading, spacing: 12) {
+            SectionHeading(
+                title: "岁前 · 将前",
+                subtitle: "起于\(Ganzhi.branches[anchor])"
+            )
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 8) {
+                ForEach(table, id: \.branch) { row in
+                    HStack(spacing: 7) {
+                        Text(Ganzhi.branches[row.branch])
+                            .font(.system(.subheadline, design: .serif, weight: .semibold))
+                            .foregroundStyle(Theme.cinnabar)
+                            .frame(width: 20, alignment: .leading)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(row.suiQian.name)
+                                .font(.caption)
+                                .foregroundStyle(Theme.ink)
+                            Text(row.jiangQian.name)
+                                .font(.caption2)
+                                .foregroundStyle(Theme.secondaryInk)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.vertical, 5)
+                }
+            }
+            Text("岁建起于该层地支、将星起于三合帝旺位，两组都顺行十二宫。本命层用生年支，大限、流年等层用该层命宫地支。点按宫位可看每宫的神名释义。")
+                .font(.caption2)
+                .foregroundStyle(Theme.secondaryInk)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .ziWeiCard()
+    }
 
     private func header(_ chart: Chart, layer: TimeLayer) -> some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -192,7 +241,7 @@ struct ChartView: View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeading(
                 title: "格局",
-                subtitle: patterns.isEmpty ? "\(layer.kind.rawValue)层未见经典格局" : "共 \(patterns.count) 组，按\u{201C}吉\u{201D}与\u{201C}留意\u{201D}分类"
+                subtitle: patterns.isEmpty ? "\(layer.kind.rawValue)层未见经典格局" : "共 \(patterns.count) 组"
             )
             if patterns.isEmpty {
                 Text("这张盘的结构不属于常见成格组合，按十四主星与四化逐宫来看更准确。")
@@ -200,13 +249,14 @@ struct ChartView: View {
                     .foregroundStyle(Theme.secondaryInk)
             } else {
                 ForEach(patterns) { pattern in
-                    VStack(alignment: .leading, spacing: 5) {
-                        HStack(spacing: 7) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 6) {
                             Text(pattern.name)
                                 .font(.system(.subheadline, design: .serif, weight: .semibold))
                                 .foregroundStyle(Theme.ink)
                             TagPill(text: pattern.kind.rawValue, color: patternColor(pattern.kind))
-                            Spacer()
+                            TagPill(text: pattern.category.rawValue, color: Theme.azurite)
+                            Spacer(minLength: 0)
                             Text(pattern.branchText)
                                 .font(.caption2)
                                 .foregroundStyle(Theme.secondaryInk)
@@ -214,6 +264,23 @@ struct ChartView: View {
                         Text(pattern.summary)
                             .font(.caption)
                             .foregroundStyle(Theme.secondaryInk)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if !pattern.required.isEmpty {
+                            Text("成立：" + pattern.required.joined(separator: "；"))
+                                .font(.caption2)
+                                .foregroundStyle(Theme.secondaryInk.opacity(0.9))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        if !pattern.bonus.isEmpty || !pattern.breaking.isEmpty {
+                            FlowLayout {
+                                ForEach(pattern.bonus, id: \.self) { item in
+                                    TagPill(text: "+ \(item)", color: Theme.jade)
+                                }
+                                ForEach(pattern.breaking, id: \.self) { item in
+                                    TagPill(text: "− \(item)", color: Theme.cinnabar)
+                                }
+                            }
+                        }
                         if let quote = ClassicLibrary.quote(for: pattern.name) {
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack(spacing: 6) {
@@ -227,6 +294,7 @@ struct ChartView: View {
                                 Text(quote.plain)
                                     .font(.caption2)
                                     .foregroundStyle(Theme.secondaryInk)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
                             .padding(9)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -239,6 +307,22 @@ struct ChartView: View {
                         Divider().overlay(Theme.line.opacity(0.4))
                     }
                 }
+            }
+
+            NavigationLink {
+                ClassicsView()
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "text.book.closed")
+                        .font(.caption)
+                    Text("古籍摘编 · 三篇原文与星性")
+                        .font(.caption)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption2)
+                }
+                .foregroundStyle(Theme.cinnabar)
+                .padding(.top, 4)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -616,6 +700,10 @@ private struct PalaceDetailView: View {
                         }
                     }
 
+                    godSection
+
+                    starVerseSection
+
                     if !palace.auxiliaryStars.isEmpty {
                         detailSection("辅曜与亮度") {
                             FlowLayout {
@@ -660,9 +748,10 @@ private struct PalaceDetailView: View {
             }
             #if DEBUG
             .onAppear {
-                if ProcessInfo.processInfo.environment["ZIWEI_DETAIL"] == "flying" {
+                if ["flying", "godSection", "starVerse"].contains(ProcessInfo.processInfo.environment["ZIWEI_DETAIL"] ?? "") {
+                    let target = ProcessInfo.processInfo.environment["ZIWEI_DETAIL"]!
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                        proxy.scrollTo("flying", anchor: .top)
+                        proxy.scrollTo(target, anchor: .top)
                     }
                 }
             }
@@ -683,6 +772,90 @@ private struct PalaceDetailView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .ziWeiCard()
+    }
+
+    /// 本宫的博士、岁前、将前十二神。
+    @ViewBuilder
+    private var godSection: some View {
+        let sui = chart.suiQianGod(layer: layer, branch: branch)
+        let jiang = chart.jiangQianGod(layer: layer, branch: branch)
+        detailSection("十二神") {
+            VStack(alignment: .leading, spacing: 12) {
+                if let doctoral = chart.doctoralSequence[branch] {
+                    godRow(label: "博士", name: doctoral, gist: "由生年禄存起，阳男阴女顺行、阴男阳女逆行，不随运限变化。")
+                }
+                if let sui {
+                    godRow(label: "岁前", name: sui.name, gist: sui.gist)
+                }
+                if let jiang {
+                    godRow(label: "将前", name: jiang.name, gist: jiang.gist)
+                }
+                Text("岁前、将前两组的起宫地支：本命层取生年支，其余各层取该层命宫地支（\(Ganzhi.branches[chart.godAnchor(for: layer)])）。")
+                    .font(.caption2)
+                    .foregroundStyle(Theme.secondaryInk)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .id("godSection")
+    }
+
+    private func godRow(label: String, name: String, gist: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                Text(label)
+                    .font(.caption2)
+                    .foregroundStyle(Theme.secondaryInk)
+                    .frame(width: 30, alignment: .leading)
+                Text(name)
+                    .font(.system(.subheadline, design: .serif, weight: .semibold))
+                    .foregroundStyle(Theme.cinnabar)
+                Spacer(minLength: 0)
+            }
+            Text(gist)
+                .font(.caption)
+                .foregroundStyle(Theme.secondaryInk)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.leading, 38)
+        }
+    }
+
+    /// 本宫星曜的古义条目。
+    @ViewBuilder
+    private var starVerseSection: some View {
+        let stars = (palace.mainStars + palace.auxiliaryStars).filter { ClassicLibrary.verse(for: $0) != nil }
+        if !stars.isEmpty {
+            detailSection("星曜古义") {
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(stars, id: \.self) { star in
+                        if let verse = ClassicLibrary.verse(for: star) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack(spacing: 7) {
+                                    Text(star.rawValue)
+                                        .font(.system(.subheadline, design: .serif, weight: .semibold))
+                                        .foregroundStyle(Theme.ink)
+                                    Text(verse.title)
+                                        .font(.caption2)
+                                        .foregroundStyle(Theme.gold)
+                                    Spacer(minLength: 0)
+                                    Text(verse.source)
+                                        .font(.caption2)
+                                        .foregroundStyle(Theme.secondaryInk)
+                                }
+                                Text("「\(verse.original)」")
+                                    .font(.system(.caption, design: .serif))
+                                    .foregroundStyle(Theme.cinnabar)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Text(verse.plain)
+                                    .font(.caption)
+                                    .foregroundStyle(Theme.secondaryInk)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
+                }
+            }
+            .id("starVerse")
+        }
     }
 
     /// 宫干飞化：本宫天干飞出的四化及其落点，落回本宫标为自化。
