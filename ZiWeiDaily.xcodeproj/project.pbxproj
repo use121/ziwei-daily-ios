@@ -7,24 +7,54 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0D1709F19EAE8E729ECDDBE7 /* ZiWeiWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F0DCCBA57F91FD173F19A48A /* ZiWeiWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		2F37749258A384085148C7BA /* TodayWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1F31BA4E8AE629A357CDFFA /* TodayWidgetView.swift */; };
 		303450D20728855E94349330 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C73FA8E9B645E5D0289211A /* TodayView.swift */; };
 		36EF057D2BB7037447A0396E /* LifeOverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF755455D68BAAF1F44ECFBE /* LifeOverviewView.swift */; };
 		3C965FE684DC18F9787FD694 /* ZiWeiCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4B5E1C32B07F36AF6F931685 /* ZiWeiCore */; };
 		4713EDEA3BD5D9F299F9C04A /* InsightView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A68E8D540313A15B17F219D /* InsightView.swift */; };
 		4D0FDD744842EBD4412686EF /* BirthInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A7803E698021E12C541266 /* BirthInputView.swift */; };
 		60ECCFF7F092EA00D4D877EF /* ChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5B0D88D74A6A03B0BF76 /* ChartView.swift */; };
+		6799D55CDA22AD6754F39F05 /* ZiWeiDailyWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = C383D31A720887C6C0FAA838 /* ZiWeiDailyWidgetBundle.swift */; };
 		7C8DBEC62082B3B049F89221 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82B430F16286A7F90BA06773 /* RootView.swift */; };
+		8571670A64A600ED658BA84C /* TodayWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = C362FA586639280F72406005 /* TodayWidget.swift */; };
 		8C2A1FD73A1B32C87D787DC5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 08015D169BD2BCE706C3BC65 /* Assets.xcassets */; };
 		92F0518A8B1BD6A93A0FE20C /* ZiWeiDailyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1684FD92351DC0FBA84E68A3 /* ZiWeiDailyApp.swift */; };
 		93C75DE1E8ECFAD0BA8786C4 /* LayerSwitcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91CFD9E935AA1D6D45BB1CE9 /* LayerSwitcher.swift */; };
 		BEAAABD1B99DD477C34FA905 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3823DDEE173B3C937E3E7CAD /* Theme.swift */; };
+		CCFC5204569B5E83CAF8DD74 /* ZiWeiCore in Frameworks */ = {isa = PBXBuildFile; productRef = E1A82FE49EA7A234D08ED4F3 /* ZiWeiCore */; };
 		D679B3A26B0CED5B411E03D9 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F11A3968FD6D8C38A075D7B /* AppState.swift */; };
 		EAFC797326805015C8EEE40B /* SharePosterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00FBC694CCC18CA362A1E9B4 /* SharePosterView.swift */; };
 		F97F3BF2A20C5A176A8A90C3 /* RadarChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 652A303AABD66E43773BB12A /* RadarChart.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		15D7F0BA0B7A371505957EE4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 03A53873FEE5A286158CC251 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E18656532C5A0303C56C087C;
+			remoteInfo = ZiWeiWidget;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		49C94F59F969D900EB68377A /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				0D1709F19EAE8E729ECDDBE7 /* ZiWeiWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		00FBC694CCC18CA362A1E9B4 /* SharePosterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharePosterView.swift; sourceTree = "<group>"; };
+		028CAD913B7AD828D8243B36 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		08015D169BD2BCE706C3BC65 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		0E1DC650E586754A891768E4 /* 2026-11-08-12-00-48 */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "2026-11-08-12-00-48"; path = .; sourceTree = SOURCE_ROOT; };
 		1684FD92351DC0FBA84E68A3 /* ZiWeiDailyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZiWeiDailyApp.swift; sourceTree = "<group>"; };
@@ -34,11 +64,17 @@
 		3A68E8D540313A15B17F219D /* InsightView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightView.swift; sourceTree = "<group>"; };
 		3C73FA8E9B645E5D0289211A /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
 		652A303AABD66E43773BB12A /* RadarChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarChart.swift; sourceTree = "<group>"; };
+		7D9F9A912F797C3D4706CF8F /* ZiWeiWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ZiWeiWidget.entitlements; sourceTree = "<group>"; };
 		82B430F16286A7F90BA06773 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		91CFD9E935AA1D6D45BB1CE9 /* LayerSwitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayerSwitcher.swift; sourceTree = "<group>"; };
 		9A2D5B0D88D74A6A03B0BF76 /* ChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartView.swift; sourceTree = "<group>"; };
+		B1F31BA4E8AE629A357CDFFA /* TodayWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayWidgetView.swift; sourceTree = "<group>"; };
+		C362FA586639280F72406005 /* TodayWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayWidget.swift; sourceTree = "<group>"; };
+		C383D31A720887C6C0FAA838 /* ZiWeiDailyWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZiWeiDailyWidgetBundle.swift; sourceTree = "<group>"; };
 		CF755455D68BAAF1F44ECFBE /* LifeOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifeOverviewView.swift; sourceTree = "<group>"; };
 		D1A7803E698021E12C541266 /* BirthInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BirthInputView.swift; sourceTree = "<group>"; };
+		E664CB733747FD4311072339 /* ZiWeiDaily.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ZiWeiDaily.entitlements; sourceTree = "<group>"; };
+		F0DCCBA57F91FD173F19A48A /* ZiWeiWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = ZiWeiWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -47,6 +83,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				3C965FE684DC18F9787FD694 /* ZiWeiCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B340A10ABDF90F621A612CD2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CCFC5204569B5E83CAF8DD74 /* ZiWeiCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -82,6 +126,7 @@
 			isa = PBXGroup;
 			children = (
 				B8CE26713525B2D4B80BC411 /* ZiWeiDaily */,
+				CF346957B5C37A7EFDE6356D /* ZiWeiWidget */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -106,12 +151,25 @@
 			isa = PBXGroup;
 			children = (
 				3823DDEE173B3C937E3E7CAD /* Theme.swift */,
+				E664CB733747FD4311072339 /* ZiWeiDaily.entitlements */,
 				1684FD92351DC0FBA84E68A3 /* ZiWeiDailyApp.swift */,
 				D765DCABAFC93A6A20416A21 /* Resources */,
 				14C8D13045D15E572AD81B1F /* ViewModels */,
 				AABFC96DD4CD016C535F37F4 /* Views */,
 			);
 			path = ZiWeiDaily;
+			sourceTree = "<group>";
+		};
+		CF346957B5C37A7EFDE6356D /* ZiWeiWidget */ = {
+			isa = PBXGroup;
+			children = (
+				028CAD913B7AD828D8243B36 /* Info.plist */,
+				C362FA586639280F72406005 /* TodayWidget.swift */,
+				B1F31BA4E8AE629A357CDFFA /* TodayWidgetView.swift */,
+				C383D31A720887C6C0FAA838 /* ZiWeiDailyWidgetBundle.swift */,
+				7D9F9A912F797C3D4706CF8F /* ZiWeiWidget.entitlements */,
+			);
+			path = ZiWeiWidget;
 			sourceTree = "<group>";
 		};
 		D765DCABAFC93A6A20416A21 /* Resources */ = {
@@ -126,6 +184,7 @@
 			isa = PBXGroup;
 			children = (
 				2C703A80668A03799FE6A38F /* ZiWeiDaily.app */,
+				F0DCCBA57F91FD173F19A48A /* ZiWeiWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -140,10 +199,12 @@
 				F7BAE72BBE98B63E6C9BCB1C /* Sources */,
 				80C54F791DF8B7479B771E40 /* Resources */,
 				10CB0F0490CF024687675EE6 /* Frameworks */,
+				49C94F59F969D900EB68377A /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				2BE0415B425CD0456A7B30D3 /* PBXTargetDependency */,
 			);
 			name = ZiWeiDaily;
 			packageProductDependencies = (
@@ -152,6 +213,25 @@
 			productName = ZiWeiDaily;
 			productReference = 2C703A80668A03799FE6A38F /* ZiWeiDaily.app */;
 			productType = "com.apple.product-type.application";
+		};
+		E18656532C5A0303C56C087C /* ZiWeiWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 93090A32D0431D94C7B31513 /* Build configuration list for PBXNativeTarget "ZiWeiWidget" */;
+			buildPhases = (
+				4A07A8208621B357D7BDE4D7 /* Sources */,
+				B340A10ABDF90F621A612CD2 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ZiWeiWidget;
+			packageProductDependencies = (
+				E1A82FE49EA7A234D08ED4F3 /* ZiWeiCore */,
+			);
+			productName = ZiWeiWidget;
+			productReference = F0DCCBA57F91FD173F19A48A /* ZiWeiWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -163,6 +243,10 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					52607FFB7CF2B29ACB941513 = {
+						DevelopmentTeam = 5Y7JPFB56Q;
+						ProvisioningStyle = Automatic;
+					};
+					E18656532C5A0303C56C087C = {
 						DevelopmentTeam = 5Y7JPFB56Q;
 						ProvisioningStyle = Automatic;
 					};
@@ -186,6 +270,7 @@
 			projectRoot = "";
 			targets = (
 				52607FFB7CF2B29ACB941513 /* ZiWeiDaily */,
+				E18656532C5A0303C56C087C /* ZiWeiWidget */,
 			);
 		};
 /* End PBXProject section */
@@ -202,6 +287,16 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		4A07A8208621B357D7BDE4D7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8571670A64A600ED658BA84C /* TodayWidget.swift in Sources */,
+				2F37749258A384085148C7BA /* TodayWidgetView.swift in Sources */,
+				6799D55CDA22AD6754F39F05 /* ZiWeiDailyWidgetBundle.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F7BAE72BBE98B63E6C9BCB1C /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -223,14 +318,49 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		2BE0415B425CD0456A7B30D3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E18656532C5A0303C56C087C /* ZiWeiWidget */;
+			targetProxy = 15D7F0BA0B7A371505957EE4 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		1F1C32561E9A8C5A2CE21289 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = App/ZiWeiWidget/ZiWeiWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 9;
+				DEVELOPMENT_TEAM = 5Y7JPFB56Q;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = App/ZiWeiWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.6.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ziweidaily.5Y7JPFB56Q.widget;
+				PRODUCT_NAME = ZiWeiWidget;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		203EEC599050B3A08FDEA421 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/ZiWeiDaily/ZiWeiDaily.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 9;
 				DEVELOPMENT_TEAM = 5Y7JPFB56Q;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -245,7 +375,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.5.0;
+				MARKETING_VERSION = 1.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ziweidaily.5Y7JPFB56Q;
 				PRODUCT_MODULE_NAME = ZiWeiDaily;
 				PRODUCT_NAME = ZiWeiDaily;
@@ -376,13 +506,40 @@
 			};
 			name = Debug;
 		};
+		70C52D79D3071D4F5C6357CD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = App/ZiWeiWidget/ZiWeiWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 9;
+				DEVELOPMENT_TEAM = 5Y7JPFB56Q;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = App/ZiWeiWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.6.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ziweidaily.5Y7JPFB56Q.widget;
+				PRODUCT_NAME = ZiWeiWidget;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
 		83C98847F807EEE1FA5ED96D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/ZiWeiDaily/ZiWeiDaily.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 9;
 				DEVELOPMENT_TEAM = 5Y7JPFB56Q;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -397,7 +554,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.5.0;
+				MARKETING_VERSION = 1.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ziweidaily.5Y7JPFB56Q;
 				PRODUCT_MODULE_NAME = ZiWeiDaily;
 				PRODUCT_NAME = ZiWeiDaily;
@@ -417,6 +574,15 @@
 			buildConfigurations = (
 				5CA91877351AF095F3E32955 /* Debug */,
 				5130CCA620550E4A2A2CF8EE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		93090A32D0431D94C7B31513 /* Build configuration list for PBXNativeTarget "ZiWeiWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				70C52D79D3071D4F5C6357CD /* Debug */,
+				1F1C32561E9A8C5A2CE21289 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
@@ -441,6 +607,10 @@
 
 /* Begin XCSwiftPackageProductDependency section */
 		4B5E1C32B07F36AF6F931685 /* ZiWeiCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ZiWeiCore;
+		};
+		E1A82FE49EA7A234D08ED4F3 /* ZiWeiCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ZiWeiCore;
 		};

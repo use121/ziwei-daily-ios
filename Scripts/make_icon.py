@@ -256,19 +256,22 @@ if __name__ == "__main__":
 def design_b_final(tone="light"):
     """tone: light（默认）/ dark / tinted"""
     if tone == "light":
-        bg_in, bg_out = (253, 250, 242), (231, 219, 197)
+        # 渐变只留极轻的一层：大跨度渐变会让 PNG 无法压缩，1024 图标会飙到 800KB
+        bg_in, bg_out = (252, 249, 241), (246, 240, 228)
         ring, star_c, gold_line = CINNABAR, CINNABAR, GOLD_DEEP
         gold_alpha, hole = 205, (250, 244, 232)
     elif tone == "dark":
-        bg_in, bg_out = (46, 34, 30), (20, 15, 14)
+        bg_in, bg_out = (36, 30, 26), (24, 20, 18)
         ring, star_c = (198, 62, 48), (206, 70, 55)
         gold_line, gold_alpha, hole = (206, 168, 112), 120, (30, 23, 21)
     else:  # tinted：灰度，交给系统上色
-        bg_in, bg_out = (255, 255, 255), (228, 228, 228)
+        bg_in, bg_out = (255, 255, 255), (242, 242, 242)
         ring, star_c = (96, 96, 96), (72, 72, 72)
         gold_line, gold_alpha, hole = (168, 168, 168), 255, (255, 255, 255)
 
-    base = add_grain(radial_gradient(S, bg_in, bg_out, 1.2), 2.6 if tone != "tinted" else 1.2)
+    # 不加纸纹噪点：噪点会让 PNG 几乎无法压缩（单张从 125KB 涨到 575KB），
+    # 而图标在 60pt 下根本看不到这层纹理
+    base = radial_gradient(S, bg_in, bg_out, 1.2)
     img = to_image(base).convert("RGBA")
     d = ImageDraw.Draw(img)
     cx = cy = S / 2

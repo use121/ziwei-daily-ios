@@ -17,15 +17,18 @@ targets:
       - path: App/ZiWeiDaily
     resources:
       - path: App/ZiWeiDaily/Resources/Assets.xcassets
+    entitlements:
+      path: App/ZiWeiDaily/ZiWeiDaily.entitlements
     dependencies:
       - package: ZiWeiCore
+      - target: ZiWeiWidget
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ziweidaily.5Y7JPFB56Q
         PRODUCT_NAME: ZiWeiDaily
         PRODUCT_MODULE_NAME: ZiWeiDaily
-        MARKETING_VERSION: 1.5.0
-        CURRENT_PROJECT_VERSION: 8
+        MARKETING_VERSION: 1.6.0
+        CURRENT_PROJECT_VERSION: 9
         DEVELOPMENT_TEAM: 5Y7JPFB56Q
         CODE_SIGN_STYLE: Automatic
         GENERATE_INFOPLIST_FILE: YES
@@ -45,11 +48,44 @@ targets:
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
         Release:
           SWIFT_COMPILATION_MODE: wholemodule
+
+  ZiWeiWidget:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    path: App/ZiWeiWidget
+    sources:
+      - path: App/ZiWeiWidget
+    info:
+      path: App/ZiWeiWidget/Info.plist
+      properties:
+        CFBundleDisplayName: 紫微日常
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: App/ZiWeiWidget/ZiWeiWidget.entitlements
+    dependencies:
+      - package: ZiWeiCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ziweidaily.5Y7JPFB56Q.widget
+        PRODUCT_NAME: ZiWeiWidget
+        MARKETING_VERSION: 1.6.0
+        CURRENT_PROJECT_VERSION: 9
+        DEVELOPMENT_TEAM: 5Y7JPFB56Q
+        CODE_SIGN_STYLE: Automatic
+        GENERATE_INFOPLIST_FILE: NO
+        SKIP_INSTALL: YES
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SWIFT_VERSION: "6.0"
+        APPLICATION_EXTENSION_API_ONLY: YES
+
 schemes:
   ZiWeiDaily:
     build:
       targets:
         ZiWeiDaily: all
+        ZiWeiWidget: all
     run:
       config: Debug
     archive:

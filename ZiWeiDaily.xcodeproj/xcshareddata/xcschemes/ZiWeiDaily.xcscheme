@@ -21,6 +21,20 @@
                ReferencedContainer = "container:ZiWeiDaily.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "E18656532C5A0303C56C087C"
+               BuildableName = "ZiWeiWidget.appex"
+               BlueprintName = "ZiWeiWidget"
+               ReferencedContainer = "container:ZiWeiDaily.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction

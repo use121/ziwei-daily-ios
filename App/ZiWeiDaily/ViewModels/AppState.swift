@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import UIKit
+import WidgetKit
 import ZiWeiCore
 
 enum AppTab: Hashable {
@@ -130,6 +131,7 @@ final class AppState: ObservableObject {
             case "input": selectedTab = .input
             default: selectedTab = .today
             }
+            publishSharedProfile()
             return
         }
         #endif
@@ -137,9 +139,18 @@ final class AppState: ObservableObject {
             chart = restoredChart
             report = FortuneEngine.report(for: restoredChart)
             selectedTab = .today
+            publishSharedProfile()
         } else {
             selectedTab = .input
         }
+    }
+
+    /// 把当前档案写进 Keychain，供桌面小组件读取；随后让组件刷新一次。
+    private func publishSharedProfile() {
+        let trimmed = input.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let name = trimmed.isEmpty ? currentProfileName : trimmed
+        SharedStore.save(SharedStore.Payload(name: name, input: input))
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     func generateChart() {
@@ -151,6 +162,7 @@ final class AppState: ObservableObject {
             issues = []
             syncCurrentProfile()
             persist()
+            publishSharedProfile()
             selectedTab = .today
             UINotificationFeedbackGenerator().notificationOccurred(.success)
         } catch let error as InputValidationError {
@@ -179,6 +191,8 @@ final class AppState: ObservableObject {
         report = nil
         issues = []
         selectedTab = .input
+        SharedStore.clear()
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     // MARK: - 档案管理
@@ -225,6 +239,7 @@ final class AppState: ObservableObject {
             chart = generated
             report = FortuneEngine.report(for: generated)
             selectedTab = .today
+            publishSharedProfile()
         } else {
             chart = nil
             report = nil
