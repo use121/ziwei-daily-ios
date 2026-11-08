@@ -28,6 +28,9 @@ enum Theme {
     static let line = dyn((212, 197, 171), (68, 59, 51))
     static let azurite = dyn((56, 84, 120), (127, 163, 201))
 
+    /// 「凶」不置红，按传统用墨；墨在暗底上要提亮，否则整段看不清。
+    static let ominous = dyn((74, 63, 54), (158, 146, 132))
+
     /// 卡片投影：深色下必须用真黑，不能拿 ink 当底色
     static let shadow = dyn((0, 0, 0), (0, 0, 0))
 
@@ -139,8 +142,10 @@ struct EmptyStateView: View {
 }
 
 struct CulturalDisclaimer: View {
+    var text: String = "排盘与评分基于传统文化规则，仅作自我观察与娱乐参考，不是科学测评；请勿替代医疗、投资、法律等专业意见。"
+
     var body: some View {
-        Label("排盘与评分基于传统文化规则，仅作自我观察与娱乐参考，不是科学测评；请勿替代医疗、投资、法律等专业意见。", systemImage: "info.circle")
+        Label(text, systemImage: "info.circle")
             .font(.caption)
             .foregroundStyle(Theme.secondaryInk)
             .padding(14)

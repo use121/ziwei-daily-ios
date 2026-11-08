@@ -753,4 +753,109 @@ final class ZiWeiCoreTests: XCTestCase {
             }
         }
     }
+
+    // MARK: - 小六壬
+
+    func testLiuRenMonthCountsFromDaAn() {
+        // 正月起大安，月份几就数几位，起点那一宫算第一位
+        XCTAssertEqual(LiuRenEngine.palaces(lunarMonth: 1, lunarDay: 1, hourBranch: 0).month, .daAn)
+        XCTAssertEqual(LiuRenEngine.palaces(lunarMonth: 6, lunarDay: 1, hourBranch: 0).month, .kongWang)
+        XCTAssertEqual(LiuRenEngine.palaces(lunarMonth: 7, lunarDay: 1, hourBranch: 0).month, .daAn, "数满六位回到大安")
+        XCTAssertEqual(LiuRenEngine.palaces(lunarMonth: 9, lunarDay: 1, hourBranch: 0).month, .suXi)
+    }
+
+    func testLiuRenDayStartsFromMonthPalace() {
+        // 日从月落之宫起初一
+        let first = LiuRenEngine.palaces(lunarMonth: 1, lunarDay: 1, hourBranch: 0)
+        XCTAssertEqual(first.day, first.month)
+
+        let second = LiuRenEngine.palaces(lunarMonth: 1, lunarDay: 2, hourBranch: 0)
+        XCTAssertEqual(second.day, .liuLian)
+
+        // 月落空亡（第 6 位），初一仍在空亡
+        let fromKong = LiuRenEngine.palaces(lunarMonth: 6, lunarDay: 1, hourBranch: 0)
+        XCTAssertEqual(fromKong.month, .kongWang)
+        XCTAssertEqual(fromKong.day, .kongWang)
+        // 空亡之后初二回到大安
+        XCTAssertEqual(LiuRenEngine.palaces(lunarMonth: 6, lunarDay: 2, hourBranch: 0).day, .daAn)
+    }
+
+    func testLiuRenHourStartsFromDayPalace() {
+        // 从日落之宫起子时，子一丑二
+        let result = LiuRenEngine.palaces(lunarMonth: 3, lunarDay: 15, hourBranch: 0)
+        XCTAssertEqual(result.hour, result.day, "子时落在日本身")
+
+        let next = LiuRenEngine.palaces(lunarMonth: 3, lunarDay: 15, hourBranch: 1)
+        XCTAssertEqual(next.hour.rawValue, (result.day.rawValue + 1) % 6)
+
+        // 亥时是第 12 位，向前 11 位
+        let hai = LiuRenEngine.palaces(lunarMonth: 3, lunarDay: 15, hourBranch: 11)
+        XCTAssertEqual(hai.hour.rawValue, (result.day.rawValue + 11) % 6)
+    }
+
+    func testLiuRenVerdictUsesHourPalace() {
+        let cast = LiuRenEngine.cast(on: date(2026, 11, 8, 14, 30))
+        XCTAssertEqual(cast.verdictPalace, cast.hourPalace)
+        XCTAssertEqual(cast.hourBranch, 7, "14:30 为未时")
+        XCTAssertEqual(cast.monthPalace, LiuRenPalace(rawValue: (cast.lunarMonth - 1) % 6))
+    }
+
+    func testLiuRenCastIsDeterministic() {
+        let moment = date(2026, 3, 3, 21, 5)
+        let a = LiuRenEngine.cast(on: moment)
+        let b = LiuRenEngine.cast(on: moment)
+        XCTAssertEqual(a, b, "同一时刻起课结果必须一致")
+    }
+
+    func testLiuRenStepsDescribeTheSamePath() {
+        let cast = LiuRenEngine.cast(on: date(2026, 5, 20, 10, 0))
+        let steps = cast.steps
+        XCTAssertEqual(steps.count, 3)
+        XCTAssertEqual(steps[0].from, .daAn)
+        XCTAssertEqual(steps[0].to, cast.monthPalace)
+        XCTAssertEqual(steps[1].from, cast.monthPalace)
+        XCTAssertEqual(steps[1].to, cast.dayPalace)
+        XCTAssertEqual(steps[2].from, cast.dayPalace)
+        XCTAssertEqual(steps[2].to, cast.hourPalace)
+        XCTAssertEqual(steps[2].count, cast.hourBranch + 1)
+        for step in steps {
+            XCTAssertFalse(step.line.isEmpty)
+        }
+    }
+
+    func testLiuRenPalaceLoreIsComplete() {
+        for palace in LiuRenPalace.allCases {
+            XCTAssertFalse(palace.gist.isEmpty)
+            XCTAssertFalse(palace.counsel.isEmpty)
+            XCTAssertFalse(palace.classic.isEmpty)
+            XCTAssertFalse(palace.knuckle.isEmpty)
+            XCTAssertFalse(palace.element.isEmpty)
+            // 断辞、建议里不应出现绝对化的灾祸承诺
+            for banned in ["必死", "必然破财", "必遭", "一定会"] {
+                XCTAssertFalse(palace.counsel.contains(banned), "\(palace.name) 含绝对化措辞：\(banned)")
+                XCTAssertFalse(palace.gist.contains(banned))
+            }
+        }
+    }
+
+    func testLiuRenThreeAuspiciousThreeNot() {
+        XCTAssertEqual(LiuRenPalace.daAn.verdict, .auspicious)
+        XCTAssertEqual(LiuRenPalace.suXi.verdict, .auspicious)
+        XCTAssertEqual(LiuRenPalace.xiaoJi.verdict, .auspicious)
+        XCTAssertEqual(LiuRenPalace.liuLian.verdict, .stalled)
+        XCTAssertEqual(LiuRenPalace.chiKou.verdict, .inauspicious)
+        XCTAssertEqual(LiuRenPalace.kongWang.verdict, .inauspicious)
+    }
+
+    func testChineseMonthAndDayNames() {
+        XCTAssertEqual(ChineseMonthName.text(month: 1, isLeap: false), "正月")
+        XCTAssertEqual(ChineseMonthName.text(month: 11, isLeap: false), "冬月")
+        XCTAssertEqual(ChineseMonthName.text(month: 12, isLeap: false), "腊月")
+        XCTAssertEqual(ChineseMonthName.text(month: 6, isLeap: true), "闰六月")
+        XCTAssertEqual(ChineseDayName.text(day: 1), "初一")
+        XCTAssertEqual(ChineseDayName.text(day: 10), "初十")
+        XCTAssertEqual(ChineseDayName.text(day: 15), "十五")
+        XCTAssertEqual(ChineseDayName.text(day: 23), "廿三")
+        XCTAssertEqual(ChineseDayName.text(day: 30), "三十")
+    }
 }

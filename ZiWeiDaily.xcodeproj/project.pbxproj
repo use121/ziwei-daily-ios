@@ -12,6 +12,7 @@
 		303450D20728855E94349330 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C73FA8E9B645E5D0289211A /* TodayView.swift */; };
 		36EF057D2BB7037447A0396E /* LifeOverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF755455D68BAAF1F44ECFBE /* LifeOverviewView.swift */; };
 		3C965FE684DC18F9787FD694 /* ZiWeiCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4B5E1C32B07F36AF6F931685 /* ZiWeiCore */; };
+		3D1BF476F5D757104FC1F4D0 /* LiuRenLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 701EA1E38AA66797A9077855 /* LiuRenLog.swift */; };
 		4713EDEA3BD5D9F299F9C04A /* InsightView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A68E8D540313A15B17F219D /* InsightView.swift */; };
 		4D0FDD744842EBD4412686EF /* BirthInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A7803E698021E12C541266 /* BirthInputView.swift */; };
 		60ECCFF7F092EA00D4D877EF /* ChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5B0D88D74A6A03B0BF76 /* ChartView.swift */; };
@@ -21,6 +22,7 @@
 		8C2A1FD73A1B32C87D787DC5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 08015D169BD2BCE706C3BC65 /* Assets.xcassets */; };
 		92F0518A8B1BD6A93A0FE20C /* ZiWeiDailyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1684FD92351DC0FBA84E68A3 /* ZiWeiDailyApp.swift */; };
 		93C75DE1E8ECFAD0BA8786C4 /* LayerSwitcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91CFD9E935AA1D6D45BB1CE9 /* LayerSwitcher.swift */; };
+		A71CBD271BFBE1DE43FBE39E /* LiuRenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3ABC8616FFAF86CEFB12A14 /* LiuRenView.swift */; };
 		BEAAABD1B99DD477C34FA905 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3823DDEE173B3C937E3E7CAD /* Theme.swift */; };
 		CCFC5204569B5E83CAF8DD74 /* ZiWeiCore in Frameworks */ = {isa = PBXBuildFile; productRef = E1A82FE49EA7A234D08ED4F3 /* ZiWeiCore */; };
 		D679B3A26B0CED5B411E03D9 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F11A3968FD6D8C38A075D7B /* AppState.swift */; };
@@ -64,6 +66,7 @@
 		3A68E8D540313A15B17F219D /* InsightView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightView.swift; sourceTree = "<group>"; };
 		3C73FA8E9B645E5D0289211A /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
 		652A303AABD66E43773BB12A /* RadarChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarChart.swift; sourceTree = "<group>"; };
+		701EA1E38AA66797A9077855 /* LiuRenLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiuRenLog.swift; sourceTree = "<group>"; };
 		7D9F9A912F797C3D4706CF8F /* ZiWeiWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ZiWeiWidget.entitlements; sourceTree = "<group>"; };
 		82B430F16286A7F90BA06773 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		91CFD9E935AA1D6D45BB1CE9 /* LayerSwitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayerSwitcher.swift; sourceTree = "<group>"; };
@@ -73,6 +76,7 @@
 		C383D31A720887C6C0FAA838 /* ZiWeiDailyWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZiWeiDailyWidgetBundle.swift; sourceTree = "<group>"; };
 		CF755455D68BAAF1F44ECFBE /* LifeOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifeOverviewView.swift; sourceTree = "<group>"; };
 		D1A7803E698021E12C541266 /* BirthInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BirthInputView.swift; sourceTree = "<group>"; };
+		D3ABC8616FFAF86CEFB12A14 /* LiuRenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiuRenView.swift; sourceTree = "<group>"; };
 		E664CB733747FD4311072339 /* ZiWeiDaily.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ZiWeiDaily.entitlements; sourceTree = "<group>"; };
 		F0DCCBA57F91FD173F19A48A /* ZiWeiWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = ZiWeiWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -101,6 +105,7 @@
 			isa = PBXGroup;
 			children = (
 				1F11A3968FD6D8C38A075D7B /* AppState.swift */,
+				701EA1E38AA66797A9077855 /* LiuRenLog.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -139,6 +144,7 @@
 				3A68E8D540313A15B17F219D /* InsightView.swift */,
 				91CFD9E935AA1D6D45BB1CE9 /* LayerSwitcher.swift */,
 				CF755455D68BAAF1F44ECFBE /* LifeOverviewView.swift */,
+				D3ABC8616FFAF86CEFB12A14 /* LiuRenView.swift */,
 				652A303AABD66E43773BB12A /* RadarChart.swift */,
 				82B430F16286A7F90BA06773 /* RootView.swift */,
 				00FBC694CCC18CA362A1E9B4 /* SharePosterView.swift */,
@@ -307,6 +313,8 @@
 				4713EDEA3BD5D9F299F9C04A /* InsightView.swift in Sources */,
 				93C75DE1E8ECFAD0BA8786C4 /* LayerSwitcher.swift in Sources */,
 				36EF057D2BB7037447A0396E /* LifeOverviewView.swift in Sources */,
+				3D1BF476F5D757104FC1F4D0 /* LiuRenLog.swift in Sources */,
+				A71CBD271BFBE1DE43FBE39E /* LiuRenView.swift in Sources */,
 				F97F3BF2A20C5A176A8A90C3 /* RadarChart.swift in Sources */,
 				7C8DBEC62082B3B049F89221 /* RootView.swift in Sources */,
 				EAFC797326805015C8EEE40B /* SharePosterView.swift in Sources */,
@@ -333,7 +341,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = App/ZiWeiWidget/ZiWeiWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 11;
 				DEVELOPMENT_TEAM = 5Y7JPFB56Q;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/ZiWeiWidget/Info.plist;
@@ -343,7 +351,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.6.1;
+				MARKETING_VERSION = 1.7.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ziweidaily.5Y7JPFB56Q.widget;
 				PRODUCT_NAME = ZiWeiWidget;
 				SDKROOT = iphoneos;
@@ -360,7 +368,7 @@
 				CODE_SIGN_ENTITLEMENTS = App/ZiWeiDaily/ZiWeiDaily.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 11;
 				DEVELOPMENT_TEAM = 5Y7JPFB56Q;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -375,7 +383,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.6.1;
+				MARKETING_VERSION = 1.7.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ziweidaily.5Y7JPFB56Q;
 				PRODUCT_MODULE_NAME = ZiWeiDaily;
 				PRODUCT_NAME = ZiWeiDaily;
@@ -512,7 +520,7 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = App/ZiWeiWidget/ZiWeiWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 11;
 				DEVELOPMENT_TEAM = 5Y7JPFB56Q;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/ZiWeiWidget/Info.plist;
@@ -522,7 +530,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.6.1;
+				MARKETING_VERSION = 1.7.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ziweidaily.5Y7JPFB56Q.widget;
 				PRODUCT_NAME = ZiWeiWidget;
 				SDKROOT = iphoneos;
@@ -539,7 +547,7 @@
 				CODE_SIGN_ENTITLEMENTS = App/ZiWeiDaily/ZiWeiDaily.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 11;
 				DEVELOPMENT_TEAM = 5Y7JPFB56Q;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -554,7 +562,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.6.1;
+				MARKETING_VERSION = 1.7.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ziweidaily.5Y7JPFB56Q;
 				PRODUCT_MODULE_NAME = ZiWeiDaily;
 				PRODUCT_NAME = ZiWeiDaily;

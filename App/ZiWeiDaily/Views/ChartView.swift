@@ -15,6 +15,7 @@ struct ChartView: View {
     @EnvironmentObject private var state: AppState
     @State private var selection: BranchSelection?
     @State private var posterShare: PosterShareItem?
+    @State private var liuRenActive = false
 
     var body: some View {
         NavigationStack {
@@ -78,6 +79,19 @@ struct ChartView: View {
                 .background(Theme.paper)
                 .navigationTitle("紫微命盘")
                 .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        NavigationLink {
+                            LiuRenView()
+                        } label: {
+                            HStack(spacing: 3) {
+                                Image(systemName: "hand.point.up.left.fill")
+                                    .font(.footnote)
+                                Text("小六起卦")
+                            }
+                            .foregroundStyle(Theme.cinnabar)
+                        }
+                        .accessibilityLabel("小六起卦")
+                    }
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
                             exportPoster(chart: chart, layer: layer)
@@ -88,6 +102,16 @@ struct ChartView: View {
                         .accessibilityLabel("导出长图")
                     }
                 }
+                .navigationDestination(isPresented: $liuRenActive) {
+                    LiuRenView()
+                }
+                #if DEBUG
+                .onAppear {
+                    if ProcessInfo.processInfo.environment["ZIWEI_LIUREN"] == "1" {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { liuRenActive = true }
+                    }
+                }
+                #endif
                 .sheet(item: $selection) { item in
                     PalaceDetailView(chart: chart, layer: layer, branch: item.branch)
                         .presentationBackground(Theme.paper)
