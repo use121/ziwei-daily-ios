@@ -1,0 +1,64 @@
+name: Build IPA
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-ipa:
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Run core tests
+        run: swift test --disable-sandbox
+
+      - name: Generate Xcode project
+        run: xcodegen generate --spec project.yml
+
+      - name: Archive unsigned app
+        run: |
+          xcodebuild \
+            -project ZiWeiDaily.xcodeproj \
+            -scheme ZiWeiDaily \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath build/ZiWeiDaily.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p build/Payload
+          cp -R build/ZiWeiDaily.xcarchive/Products/Applications/ZiWeiDaily.app build/Payload/
+          cd build
+          xattr -cr Payload
+          rm -f ZiWeiDaily-unsigned.ipa
+          COPYFILE_DISABLE=1 zip -qry ZiWeiDaily-unsigned.ipa Payload
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZiWeiDaily-unsigned-ipa
+          path: build/ZiWeiDaily-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Attach IPA to tagged release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${GITHUB_REF_NAME}" build/ZiWeiDaily-unsigned.ipa --generate-notes
