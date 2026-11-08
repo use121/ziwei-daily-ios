@@ -90,6 +90,7 @@ struct ChartView: View {
                 }
                 .sheet(item: $selection) { item in
                     PalaceDetailView(chart: chart, layer: layer, branch: item.branch)
+                        .presentationBackground(Theme.paper)
                 }
                 .sheet(item: $posterShare) { item in
                     ActivityView(items: [item.image])

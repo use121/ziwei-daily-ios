@@ -2,17 +2,34 @@ import SwiftUI
 import ZiWeiCore
 
 enum Theme {
-    static let paper = Color(red: 0.975, green: 0.957, blue: 0.914)
-    static let card = Color(red: 1.0, green: 0.992, blue: 0.969)
-    static let ink = Color(red: 0.16, green: 0.145, blue: 0.13)
-    static let secondaryInk = Color(red: 0.43, green: 0.40, blue: 0.36)
-    static let cinnabar = Color(red: 0.66, green: 0.16, blue: 0.12)
-    static let cinnabarLight = Color(red: 0.95, green: 0.88, blue: 0.82)
-    static let gold = Color(red: 0.65, green: 0.45, blue: 0.18)
-    static let goldLight = Color(red: 0.94, green: 0.89, blue: 0.75)
-    static let jade = Color(red: 0.20, green: 0.43, blue: 0.34)
-    static let line = Color(red: 0.83, green: 0.77, blue: 0.67)
-    static let azurite = Color(red: 0.22, green: 0.33, blue: 0.47)
+    /// 浅色 / 深色双值。用 UIColor 的动态色，跟随系统外观自动切换，
+    /// 调用处仍然写 Theme.paper，不需要改任何视图代码。
+    private static func dyn(_ light: (Int, Int, Int), _ dark: (Int, Int, Int)) -> Color {
+        Color(uiColor: UIColor { trait in
+            let c = trait.userInterfaceStyle == .dark ? dark : light
+            return UIColor(red: CGFloat(c.0) / 255, green: CGFloat(c.1) / 255,
+                           blue: CGFloat(c.2) / 255, alpha: 1)
+        })
+    }
+
+    // 纸与墨：白天是宣纸，夜里是墨底
+    static let paper = dyn((249, 244, 233), (20, 17, 15))
+    static let card = dyn((255, 253, 247), (35, 30, 26))
+    static let ink = dyn((41, 37, 34), (237, 231, 221))
+    static let secondaryInk = dyn((110, 102, 92), (167, 156, 142))
+
+    // 朱砂：深底上要提亮，否则发闷
+    static let cinnabar = dyn((169, 41, 31), (210, 86, 74))
+    static let cinnabarLight = dyn((242, 224, 209), (58, 33, 28))
+
+    static let gold = dyn((166, 115, 48), (210, 164, 95))
+    static let goldLight = dyn((240, 227, 191), (51, 40, 26))
+    static let jade = dyn((51, 110, 87), (111, 178, 149))
+    static let line = dyn((212, 197, 171), (68, 59, 51))
+    static let azurite = dyn((56, 84, 120), (127, 163, 201))
+
+    /// 卡片投影：深色下必须用真黑，不能拿 ink 当底色
+    static let shadow = dyn((0, 0, 0), (0, 0, 0))
 
     /// 四化配色：禄（玉）、权（石青）、科（金）、忌（朱砂）
     static func transformationColor(_ kind: TransformationKind) -> Color {
@@ -28,7 +45,7 @@ enum Theme {
         switch score {
         case 80...: Theme.cinnabar
         case 65..<80: Theme.gold
-        case 50..<65: Color(red: 0.65, green: 0.48, blue: 0.28)
+        case 50..<65: Theme.gold.opacity(0.85)
         default: Theme.secondaryInk
         }
     }
@@ -46,7 +63,7 @@ struct CardModifier: ViewModifier {
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .stroke(Theme.line.opacity(0.45), lineWidth: 0.7)
             }
-            .shadow(color: Theme.ink.opacity(0.045), radius: 12, y: 5)
+            .shadow(color: Theme.shadow.opacity(0.05), radius: 12, y: 5)
     }
 }
 

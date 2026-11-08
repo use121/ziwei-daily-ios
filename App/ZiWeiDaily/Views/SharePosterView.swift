@@ -299,7 +299,10 @@ struct ActivityView: UIViewControllerRepresentable {
 @MainActor
 enum PosterExporter {
     static func render(chart: Chart, layer: TimeLayer) -> UIImage? {
-        let renderer = ImageRenderer(content: SharePosterView(chart: chart, layer: layer))
+        // 长图固定浅色：它是拿去打印、发微信的，跟着系统变墨底反而不好用
+        let content = SharePosterView(chart: chart, layer: layer)
+            .environment(\.colorScheme, .light)
+        let renderer = ImageRenderer(content: content)
         renderer.proposedSize = ProposedViewSize(width: 420, height: nil)
         renderer.scale = 3
         return renderer.uiImage
