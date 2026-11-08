@@ -38,7 +38,7 @@ jobs:
             -archivePath build/ZiWeiDaily.xcarchive \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            build
+            archive
 
       - name: Package unsigned IPA
         run: |
