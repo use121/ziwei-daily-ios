@@ -1,4 +1,5 @@
 import SwiftUI
+import ZiWeiCore
 
 enum Theme {
     static let paper = Color(red: 0.975, green: 0.957, blue: 0.914)
@@ -11,6 +12,17 @@ enum Theme {
     static let goldLight = Color(red: 0.94, green: 0.89, blue: 0.75)
     static let jade = Color(red: 0.20, green: 0.43, blue: 0.34)
     static let line = Color(red: 0.83, green: 0.77, blue: 0.67)
+    static let azurite = Color(red: 0.22, green: 0.33, blue: 0.47)
+
+    /// 四化配色：禄（玉）、权（石青）、科（金）、忌（朱砂）
+    static func transformationColor(_ kind: TransformationKind) -> Color {
+        switch kind {
+        case .lu: Theme.jade
+        case .quan: Theme.azurite
+        case .ke: Theme.gold
+        case .ji: Theme.cinnabar
+        }
+    }
 
     static func scoreColor(_ score: Int) -> Color {
         switch score {

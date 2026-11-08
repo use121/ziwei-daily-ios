@@ -103,6 +103,33 @@ struct BirthInputView: View {
                     Text("紫微流派对晚子时有不同处理，默认 23:00 起归入次日；可按所用流派切换。")
                 }
 
+                Section {
+                    Toggle("专业版已解锁", isOn: Binding(
+                        get: { state.isProUnlocked },
+                        set: { state.setProUnlocked($0) }
+                    ))
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("本期开放")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Theme.cinnabar)
+                        Text("本命 / 大限 / 流年切换 · 星曜七档亮度 · 三方四正高亮 · 宫位四段式解读 · 六维命理解读")
+                            .font(.caption)
+                            .foregroundStyle(Theme.secondaryInk)
+                        Text("后续版本")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Theme.gold)
+                            .padding(.top, 2)
+                        Text("十二神煞 · 经典格局 · 四化路径 · 流月 · 全盘报告导出")
+                            .font(.caption)
+                            .foregroundStyle(Theme.secondaryInk)
+                    }
+                    .padding(.vertical, 2)
+                } header: {
+                    Text("专业版")
+                } footer: {
+                    Text("自签分发没有 App Store 内购通道，专业版状态仅保存在本机，用于内容分层展示，不涉及任何支付。")
+                }
+
                 if !state.issues.isEmpty {
                     Section("请检查以下内容") {
                         ForEach(state.issues.indices, id: \.self) { index in

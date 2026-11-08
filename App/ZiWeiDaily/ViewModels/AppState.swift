@@ -6,6 +6,7 @@ import ZiWeiCore
 enum AppTab: Hashable {
     case today
     case chart
+    case insight
     case input
 }
 
@@ -16,8 +17,13 @@ final class AppState: ObservableObject {
     @Published private(set) var report: DailyReport?
     @Published var issues: [InputIssue] = []
     @Published var selectedTab: AppTab
+    @Published var selectedLayer: TimeLayerKind = .natal
+    @Published var layerYear: Int
+    @Published var decadeIndex: Int?
+    @Published var isProUnlocked: Bool
 
     private let storageKey = "ziwei.daily.birth-input.v1"
+    private let proKey = "ziwei.daily.pro.v1"
 
     init() {
         var calendar = Calendar(identifier: .gregorian)
@@ -31,6 +37,8 @@ final class AppState: ObservableObject {
         }
         let initial = restored ?? BirthInput(birthDate: defaultDate)
         input = initial
+        layerYear = Calendar.current.component(.year, from: Date())
+        isProUnlocked = UserDefaults.standard.object(forKey: proKey) as? Bool ?? true
         #if DEBUG
         let environment = ProcessInfo.processInfo.environment
         if environment["ZIWEI_SAMPLE"] == "1" {
@@ -45,7 +53,21 @@ final class AppState: ObservableObject {
             let sampleChart = try? ChartEngine.makeChart(from: sample)
             chart = sampleChart
             report = sampleChart.map { FortuneEngine.report(for: $0) }
-            selectedTab = environment["ZIWEI_TAB"] == "chart" ? .chart : .today
+            switch environment["ZIWEI_LAYER"] {
+            case "decade":
+                selectedLayer = .decade
+                if let sampleChart { decadeIndex = sampleChart.currentDecadeIndex(age: sampleChart.nominalAge()) }
+            case "year":
+                selectedLayer = .year
+            default:
+                break
+            }
+            switch environment["ZIWEI_TAB"] {
+            case "chart": selectedTab = .chart
+            case "insight": selectedTab = .insight
+            case "input": selectedTab = .input
+            default: selectedTab = .today
+            }
             return
         }
         #endif
@@ -63,6 +85,7 @@ final class AppState: ObservableObject {
             let generated = try ChartEngine.makeChart(from: input)
             chart = generated
             report = FortuneEngine.report(for: generated)
+            decadeIndex = nil
             issues = []
             persist()
             selectedTab = .today
@@ -86,10 +109,61 @@ final class AppState: ObservableObject {
         calendar.timeZone = TimeZone(identifier: "Asia/Shanghai")!
         let defaultDate = calendar.date(from: DateComponents(year: 1995, month: 1, day: 1, hour: 12)) ?? Date()
         input = BirthInput(birthDate: defaultDate)
+        selectedLayer = .natal
+        decadeIndex = nil
         chart = nil
         report = nil
         issues = []
         selectedTab = .input
+    }
+
+    // MARK: - 时间层
+
+    var currentLayer: TimeLayer? {
+        guard let chart else { return nil }
+        return chart.timeLayer(kind: selectedLayer, decadeIndex: decadeIndex, year: layerYear)
+    }
+
+    var insights: [Insight] {
+        guard let chart, let layer = currentLayer else { return [] }
+        return InsightEngine.insights(for: chart, layer: layer)
+    }
+
+    var currentDecade: DecadeSlot? {
+        guard let chart, let layer = currentLayer else { return nil }
+        return layer.decade ?? chart.decades()[chart.currentDecadeIndex(age: chart.nominalAge())]
+    }
+
+    func selectLayer(_ kind: TimeLayerKind) {
+        selectedLayer = kind
+        if kind == .decade, decadeIndex == nil, let chart {
+            decadeIndex = chart.currentDecadeIndex(age: chart.nominalAge())
+        }
+    }
+
+    func stepLayer(by delta: Int) {
+        guard let chart else { return }
+        switch selectedLayer {
+        case .natal:
+            break
+        case .decade:
+            let slots = chart.decades()
+            let current = decadeIndex ?? chart.currentDecadeIndex(age: chart.nominalAge())
+            decadeIndex = min(max(current + delta, 0), slots.count - 1)
+        case .year:
+            layerYear += delta
+        }
+    }
+
+    func resetLayer() {
+        selectedLayer = .natal
+        decadeIndex = nil
+        layerYear = Calendar.current.component(.year, from: Date())
+    }
+
+    func setProUnlocked(_ value: Bool) {
+        isProUnlocked = value
+        UserDefaults.standard.set(value, forKey: proKey)
     }
 
     var shareText: String {

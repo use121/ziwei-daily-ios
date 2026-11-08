@@ -12,6 +12,9 @@ struct RootView: View {
             ChartView()
                 .tabItem { Label("命盘", systemImage: "square.grid.4x4.fill") }
                 .tag(AppTab.chart)
+            InsightView()
+                .tabItem { Label("解读", systemImage: "text.book.closed") }
+                .tag(AppTab.insight)
             BirthInputView()
                 .tabItem { Label("资料", systemImage: "person.text.rectangle") }
                 .tag(AppTab.input)

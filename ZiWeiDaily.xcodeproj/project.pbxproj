@@ -9,11 +9,13 @@
 /* Begin PBXBuildFile section */
 		303450D20728855E94349330 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C73FA8E9B645E5D0289211A /* TodayView.swift */; };
 		3C965FE684DC18F9787FD694 /* ZiWeiCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4B5E1C32B07F36AF6F931685 /* ZiWeiCore */; };
+		4713EDEA3BD5D9F299F9C04A /* InsightView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A68E8D540313A15B17F219D /* InsightView.swift */; };
 		4D0FDD744842EBD4412686EF /* BirthInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A7803E698021E12C541266 /* BirthInputView.swift */; };
 		60ECCFF7F092EA00D4D877EF /* ChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2D5B0D88D74A6A03B0BF76 /* ChartView.swift */; };
 		7C8DBEC62082B3B049F89221 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82B430F16286A7F90BA06773 /* RootView.swift */; };
 		8C2A1FD73A1B32C87D787DC5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 08015D169BD2BCE706C3BC65 /* Assets.xcassets */; };
 		92F0518A8B1BD6A93A0FE20C /* ZiWeiDailyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1684FD92351DC0FBA84E68A3 /* ZiWeiDailyApp.swift */; };
+		93C75DE1E8ECFAD0BA8786C4 /* LayerSwitcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91CFD9E935AA1D6D45BB1CE9 /* LayerSwitcher.swift */; };
 		BEAAABD1B99DD477C34FA905 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3823DDEE173B3C937E3E7CAD /* Theme.swift */; };
 		D679B3A26B0CED5B411E03D9 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F11A3968FD6D8C38A075D7B /* AppState.swift */; };
 /* End PBXBuildFile section */
@@ -25,8 +27,10 @@
 		1F11A3968FD6D8C38A075D7B /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		2C703A80668A03799FE6A38F /* ZiWeiDaily.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ZiWeiDaily.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3823DDEE173B3C937E3E7CAD /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		3A68E8D540313A15B17F219D /* InsightView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightView.swift; sourceTree = "<group>"; };
 		3C73FA8E9B645E5D0289211A /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
 		82B430F16286A7F90BA06773 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		91CFD9E935AA1D6D45BB1CE9 /* LayerSwitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayerSwitcher.swift; sourceTree = "<group>"; };
 		9A2D5B0D88D74A6A03B0BF76 /* ChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartView.swift; sourceTree = "<group>"; };
 		D1A7803E698021E12C541266 /* BirthInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BirthInputView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -81,6 +85,8 @@
 			children = (
 				D1A7803E698021E12C541266 /* BirthInputView.swift */,
 				9A2D5B0D88D74A6A03B0BF76 /* ChartView.swift */,
+				3A68E8D540313A15B17F219D /* InsightView.swift */,
+				91CFD9E935AA1D6D45BB1CE9 /* LayerSwitcher.swift */,
 				82B430F16286A7F90BA06773 /* RootView.swift */,
 				3C73FA8E9B645E5D0289211A /* TodayView.swift */,
 			);
@@ -194,6 +200,8 @@
 				D679B3A26B0CED5B411E03D9 /* AppState.swift in Sources */,
 				4D0FDD744842EBD4412686EF /* BirthInputView.swift in Sources */,
 				60ECCFF7F092EA00D4D877EF /* ChartView.swift in Sources */,
+				4713EDEA3BD5D9F299F9C04A /* InsightView.swift in Sources */,
+				93C75DE1E8ECFAD0BA8786C4 /* LayerSwitcher.swift in Sources */,
 				7C8DBEC62082B3B049F89221 /* RootView.swift in Sources */,
 				BEAAABD1B99DD477C34FA905 /* Theme.swift in Sources */,
 				303450D20728855E94349330 /* TodayView.swift in Sources */,
@@ -210,7 +218,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 5Y7JPFB56Q;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -226,7 +234,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ziweidaily.5Y7JPFB56Q;
 				PRODUCT_MODULE_NAME = ZiWeiDaily;
 				PRODUCT_NAME = ZiWeiDaily;
@@ -363,7 +371,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 5Y7JPFB56Q;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -379,7 +387,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ziweidaily.5Y7JPFB56Q;
 				PRODUCT_MODULE_NAME = ZiWeiDaily;
 				PRODUCT_NAME = ZiWeiDaily;

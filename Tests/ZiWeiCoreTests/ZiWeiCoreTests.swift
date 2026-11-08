@@ -135,4 +135,126 @@ final class ZiWeiCoreTests: XCTestCase {
         let scores = (1...60).map { FortuneEngine.report(for: chart, on: today.addingTimeInterval(TimeInterval($0 * 86_400))).score }
         XCTAssertGreaterThan(Set(scores).count, 5)
     }
+
+    // MARK: - 阶段 1：亮度 / 时间层 / 解读
+
+    func testBrightnessTableCoversEveryMainStarAndBranch() {
+        for star in Star.mainStars {
+            let values = (0..<12).compactMap { BrightnessCatalog.brightness(of: star, at: $0) }
+            XCTAssertEqual(values.count, 12, "\(star.rawValue) 亮度缺失")
+        }
+        // 逐条核对《斗数全书》派的几个锚点
+        XCTAssertEqual(BrightnessCatalog.brightness(of: .ziWei, at: 6), .miao)   // 紫微在午庙
+        XCTAssertEqual(BrightnessCatalog.brightness(of: .taiYang, at: 0), .xian)  // 太阳在子陷
+        XCTAssertEqual(BrightnessCatalog.brightness(of: .taiYin, at: 3), .xian)   // 太阴在卯陷
+        XCTAssertEqual(BrightnessCatalog.brightness(of: .tianFu, at: 0), .miao)   // 天府在子庙
+        XCTAssertEqual(BrightnessCatalog.brightness(of: .qiSha, at: 5), .ping)    // 七杀在巳平
+        XCTAssertEqual(BrightnessCatalog.brightness(of: .poJun, at: 11), .ping)   // 破军在亥平
+    }
+
+    func testBrightnessWeightsAreMonotonic() {
+        XCTAssertGreaterThan(Brightness.miao.weight, Brightness.wang.weight)
+        XCTAssertGreaterThan(Brightness.wang.weight, Brightness.de.weight)
+        XCTAssertGreaterThan(Brightness.de.weight, Brightness.bu.weight)
+        XCTAssertGreaterThan(Brightness.bu.weight, Brightness.xian.weight)
+        XCTAssertTrue(Brightness.miao.isStrong)
+        XCTAssertTrue(Brightness.xian.isWeak)
+    }
+
+    func testTenStemTransformationTableMatchesClassic() {
+        let expected: [[Star]] = [
+            [.lianZhen, .poJun, .wuQu, .taiYang],
+            [.tianJi, .tianLiang, .ziWei, .taiYin],
+            [.tianTong, .tianJi, .wenChang, .lianZhen],
+            [.taiYin, .tianTong, .tianJi, .juMen],
+            [.tanLang, .taiYin, .youBi, .tianJi],
+            [.wuQu, .tanLang, .tianLiang, .wenQu],
+            [.taiYang, .wuQu, .taiYin, .tianTong],
+            [.juMen, .taiYang, .wenQu, .wenChang],
+            [.tianLiang, .ziWei, .zuoFu, .wuQu],
+            [.poJun, .juMen, .taiYin, .tanLang]
+        ]
+        for stem in 0..<10 {
+            let result = ChartEngine.transformations(for: stem, source: .year)
+            XCTAssertEqual(result.map(\.star), expected[stem], "\(Ganzhi.stems[stem])干四化不符")
+            XCTAssertEqual(result.map(\.kind), [.lu, .quan, .ke, .ji])
+        }
+    }
+
+    func testNatalLayerPivotMatchesLifePalace() throws {
+        let chart = try ChartEngine.makeChart(from: input(date(1990, 6, 15, 9, 30)), referenceDate: date(2026, 11, 8))
+        let natal = chart.timeLayer(kind: .natal, on: date(2026, 11, 8))
+        XCTAssertEqual(natal.pivotBranch, chart.lifeBranch)
+        XCTAssertEqual(natal.transformations.count, 4)
+        XCTAssertEqual(natal.transformations.map(\.source), Array(repeating: .birth, count: 4))
+        XCTAssertEqual(chart.palaceKind(at: natal.pivotBranch, pivot: natal.pivotBranch), .life)
+        XCTAssertEqual(chart.palaceKind(at: Ganzhi.mod(natal.pivotBranch - 1, 12), pivot: natal.pivotBranch), .siblings)
+    }
+
+    func testYearLayerUsesYearBranchAndStem() throws {
+        let chart = try ChartEngine.makeChart(from: input(date(1990, 6, 15, 9, 30)), referenceDate: date(2026, 11, 8))
+        let layer = chart.timeLayer(kind: .year, year: 2026, on: date(2026, 11, 8))
+        XCTAssertEqual(layer.pivotBranch, Ganzhi.mod(2026 - 4, 12)) // 午
+        XCTAssertEqual(layer.stemIndex, Ganzhi.mod(2026 - 4, 10))   // 丙
+        XCTAssertEqual(layer.title, "2026 丙午年")
+        XCTAssertEqual(layer.transformations.map(\.source), Array(repeating: .year, count: 4))
+        XCTAssertEqual(chart.palaceKind(at: layer.pivotBranch, pivot: layer.pivotBranch), .life)
+    }
+
+    func testDecadeLayerUsesPalaceStemForTransformations() throws {
+        let chart = try ChartEngine.makeChart(from: input(date(1990, 6, 15, 9, 30)), referenceDate: date(2026, 11, 8))
+        let slots = chart.decades()
+        XCTAssertEqual(slots.count, 12)
+        for slot in slots {
+            let layer = chart.timeLayer(kind: .decade, decadeIndex: slot.index, on: date(2026, 11, 8))
+            let palace = chart.palace(at: slot.branch)
+            XCTAssertEqual(layer.stemIndex, palace.stemIndex)
+            XCTAssertEqual(layer.decade, slot)
+            XCTAssertEqual(layer.transformations.map(\.source), Array(repeating: .decade, count: 4))
+        }
+    }
+
+    func testCurrentDecadeContainsNominalAge() throws {
+        let chart = try ChartEngine.makeChart(from: input(date(1990, 6, 15, 9, 30)), referenceDate: date(2026, 11, 8))
+        let age = chart.nominalAge(on: date(2026, 11, 8))
+        XCTAssertEqual(age, 37)
+        let index = chart.currentDecadeIndex(age: age)
+        let slot = chart.decades()[index]
+        XCTAssertTrue(slot.contains(age: age))
+    }
+
+    func testTriadReturnsFourDistinctBranches() throws {
+        let chart = try ChartEngine.makeChart(from: input(date(1990, 6, 15, 9, 30)), referenceDate: date(2026, 11, 8))
+        for branch in 0..<12 {
+            let triad = chart.triad(of: branch)
+            XCTAssertEqual(triad.count, 4)
+            XCTAssertEqual(Set(triad).count, 4)
+            XCTAssertEqual(triad, [branch, Ganzhi.mod(branch + 4, 12), Ganzhi.mod(branch + 8, 12), Ganzhi.mod(branch + 6, 12)])
+            // 前三个为三合（同属一个三合局），第四个为对宫
+            XCTAssertEqual(Set(triad.prefix(3).map { $0 % 4 }).count, 1, "三合宫应同局")
+            XCTAssertEqual(triad[3], Ganzhi.mod(branch + 6, 12), "第四位应为对宫")
+        }
+    }
+
+    func testInsightsAreDeterministicAndComplete() throws {
+        let chart = try ChartEngine.makeChart(from: input(date(1990, 6, 15, 9, 30)), referenceDate: date(2026, 11, 8))
+        let layer = chart.timeLayer(kind: .natal, on: date(2026, 11, 8))
+        let first = InsightEngine.insights(for: chart, layer: layer)
+        let second = InsightEngine.insights(for: chart, layer: layer)
+        XCTAssertEqual(first, second)
+        XCTAssertEqual(first.count, 6)
+        XCTAssertEqual(first.map(\.topic), InsightTopic.allCases)
+        for insight in first {
+            XCTAssertFalse(insight.headline.isEmpty)
+            XCTAssertGreaterThanOrEqual(insight.blocks.count, 3)
+            XCTAssertTrue(insight.blocks.allSatisfy { !$0.body.isEmpty })
+        }
+    }
+
+    func testInsightsChangeWithTimeLayer() throws {
+        let chart = try ChartEngine.makeChart(from: input(date(1990, 6, 15, 9, 30)), referenceDate: date(2026, 11, 8))
+        let natal = InsightEngine.insights(for: chart, layer: chart.timeLayer(kind: .natal, on: date(2026, 11, 8)))
+        let decade = InsightEngine.insights(for: chart, layer: chart.timeLayer(kind: .decade, on: date(2026, 11, 8)))
+        XCTAssertNotEqual(natal[0].headline, decade[0].headline)
+    }
 }

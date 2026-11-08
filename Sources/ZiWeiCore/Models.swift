@@ -133,6 +133,7 @@ public enum TransformationKind: String, Codable, CaseIterable, Sendable {
 
 public enum TransformationSource: String, Codable, Sendable {
     case birth = "生年"
+    case decade = "大限"
     case year = "流年"
     case day = "流日"
 }
