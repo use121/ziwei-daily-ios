@@ -44,13 +44,13 @@ jobs:
         run: |
           mkdir -p build/Payload
           cp -R build/ZiWeiDaily.xcarchive/Products/Applications/ZiWeiDaily.app build/Payload/
-          cd build
-          xattr -cr Payload
-          rm -f ZiWeiDaily-unsigned.ipa ZiWeiDaily-unsigned-store.ipa
-          # -X 去掉 Info-ZIP 的 0x5455/0x7875 附加字段，部分签名工具会因它解析失败
-          COPYFILE_DISABLE=1 zip -qryX ZiWeiDaily-unsigned.ipa Payload
-          # 零压缩变体：给只认 store 方式的签名工具兜底
-          COPYFILE_DISABLE=1 zip -qryX0 ZiWeiDaily-unsigned-store.ipa Payload
+          xattr -cr build/Payload
+          rm -f build/ZiWeiDaily-unsigned.ipa build/ZiWeiDaily-unsigned-store.ipa
+          # 自己写 zip 结构：不写附加字段、不写目录条目，
+          # 规避 SSZipArchive / minizip 解析失败（全能签报 failed to open zip file）
+          python3 Scripts/pack_ipa.py build/Payload/ZiWeiDaily.app build/ZiWeiDaily-unsigned.ipa --deflate
+          # 零压缩 + 无目录条目变体：给只认 store 方式的老解析器兜底
+          python3 Scripts/pack_ipa.py build/Payload/ZiWeiDaily.app build/ZiWeiDaily-unsigned-store.ipa --store --no-dirs
 
       - name: Verify IPA structure
         run: |

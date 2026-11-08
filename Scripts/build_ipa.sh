@@ -27,15 +27,22 @@ xcodebuild \
 
 mkdir -p "$STAGE/Payload"
 cp -R "$ARCHIVE/Products/Applications/ZiWeiDaily.app" "$STAGE/Payload/ZiWeiDaily.app"
-cd "$STAGE"
-xattr -cr Payload
-rm -f "$UNSIGNED_IPA"
-# 用 -X 去掉 Info-ZIP 的 0x5455/0x7875 附加字段，避免部分签名工具解析失败
-COPYFILE_DISABLE=1 zip -qryX "$UNSIGNED_IPA" Payload
+xattr -cr "$STAGE/Payload"
 
-# 自检：结构 + CRC
-unzip -tq "$UNSIGNED_IPA" >/dev/null && print "IPA integrity OK"
-unzip -l "$UNSIGNED_IPA" | grep -q "Payload/ZiWeiDaily.app/Info.plist" && print "Payload structure OK"
+# 用 Scripts/pack_ipa.py 自己写 zip 结构：
+# 不写附加字段、不写目录条目，规避 SSZipArchive / minizip 的解析兼容问题
+python3 "$ROOT/Scripts/pack_ipa.py" "$STAGE/Payload/ZiWeiDaily.app" "$UNSIGNED_IPA" --deflate
+python3 "$ROOT/Scripts/pack_ipa.py" "$STAGE/Payload/ZiWeiDaily.app" "$ROOT/Export/ZiWeiDaily-unsigned-store.ipa" --store --no-dirs
+
+# 自检：结构 + CRC + 附加字段必须为 0
+for f in "$UNSIGNED_IPA" "$ROOT/Export/ZiWeiDaily-unsigned-store.ipa"; do
+  unzip -tq "$f" >/dev/null
+  unzip -l "$f" | grep -q "Payload/ZiWeiDaily.app/Info.plist"
+  if unzip -l "$f" | grep -qE "__MACOSX|\.DS_Store"; then
+    print "包内含 macOS 垃圾文件：$f"; exit 1
+  fi
+  print "OK $(basename "$f") $(stat -f%z "$f") bytes"
+done
 
 print "Unsigned IPA exported to $UNSIGNED_IPA"
 print "Sign it with your Apple Development profile before installing on a registered device."
