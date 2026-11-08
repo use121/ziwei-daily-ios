@@ -591,4 +591,166 @@ final class ZiWeiCoreTests: XCTestCase {
         XCTAssertNotNil(ClassicLibrary.quote(for: "紫府同宫"))
         XCTAssertNil(ClassicLibrary.quote(for: "不存在的格局"))
     }
+
+    // MARK: - 一生运程
+
+    func testLifeTimelineCoversTwelveStages() throws {
+        let reference = date(2026, 11, 8)
+        let chart = try ChartEngine.makeChart(from: input(date(1990, 6, 15, 9, 30), gender: .female), referenceDate: reference)
+        let overview = LifeTimelineEngine.overview(for: chart, referenceDate: reference)
+
+        XCTAssertEqual(overview.stages.count, 12)
+        XCTAssertEqual(Set(overview.stages.map(\.branch)).count, 12, "十二大限各占一宫，不应重复")
+        XCTAssertEqual(overview.stages.filter(\.isCurrent).count, 1)
+
+        for (previous, next) in zip(overview.stages, overview.stages.dropFirst()) {
+            XCTAssertEqual(next.startAge, previous.endAge + 1, "大限年龄应连续")
+            XCTAssertEqual(next.startYear, previous.endYear + 1, "对应的公历年份应连续")
+        }
+
+        let age = chart.nominalAge(on: reference)
+        let current = overview.current!
+        XCTAssertTrue(current.startAge <= age && age <= current.endAge)
+        XCTAssertEqual(current.index, overview.currentStageIndex)
+
+        for stage in overview.stages {
+            XCTAssertFalse(stage.themeLine.isEmpty)
+            XCTAssertFalse(stage.career.isEmpty)
+            XCTAssertFalse(stage.family.isEmpty)
+            XCTAssertFalse(stage.parents.isEmpty)
+            XCTAssertFalse(stage.health.isEmpty)
+            XCTAssertTrue((42...93).contains(stage.score), "阶段评分应在合法区间")
+            XCTAssertFalse(stage.milestones.isEmpty, "每十年至少有流年归位可标")
+            XCTAssertGreaterThan(stage.endYear, stage.startYear)
+        }
+
+        // 同一张盘、同一天，结果必须完全一致
+        let again = LifeTimelineEngine.overview(for: chart, referenceDate: reference)
+        XCTAssertEqual(overview, again)
+
+        // 当前阶段的三条提醒：主线 / 四化落点 / 未来三年
+        XCTAssertEqual(overview.currentFocus.count, 3)
+        XCTAssertTrue(overview.currentFocus[0].contains(current.title))
+        XCTAssertTrue(overview.currentFocus[2].contains("未来三年"))
+
+        // 关键年份至少含当前与未来两个大限，且都带正文
+        XCTAssertFalse(overview.keyNodes.isEmpty)
+        for node in overview.keyNodes {
+            XCTAssertFalse(node.title.isEmpty)
+            XCTAssertFalse(node.detail.isEmpty)
+            XCTAssertGreaterThanOrEqual(node.age, 1)
+        }
+        XCTAssertTrue(overview.keyNodes.contains { $0.kind == .opening })
+        XCTAssertTrue(overview.keyNodes.contains { $0.kind == .caution })
+    }
+
+    func testLifeTimelineBestAndHardestStage() throws {
+        let reference = date(2026, 11, 8)
+        let chart = try ChartEngine.makeChart(from: input(date(1985, 3, 2, 15)), referenceDate: reference)
+        let overview = LifeTimelineEngine.overview(for: chart, referenceDate: reference)
+
+        let best = overview.bestStage!
+        let hardest = overview.hardestStage!
+        XCTAssertEqual(best.score, overview.stages.map(\.score).max()!)
+        XCTAssertEqual(hardest.score, overview.stages.map(\.score).min()!)
+        XCTAssertGreaterThanOrEqual(best.score, hardest.score)
+        XCTAssertTrue(overview.headline.contains(best.title))
+        XCTAssertTrue(overview.arc.contains("平均"))
+    }
+
+    func testCurrentStageFollowsReferenceDate() throws {
+        let chart = try ChartEngine.makeChart(from: input(date(1990, 6, 15, 9, 30), gender: .female), referenceDate: date(2026, 11, 8))
+        let at30 = LifeTimelineEngine.overview(for: chart, referenceDate: date(2019, 6, 15))
+        let at50 = LifeTimelineEngine.overview(for: chart, referenceDate: date(2039, 6, 15))
+        XCTAssertNotEqual(at30.currentStageIndex, at50.currentStageIndex)
+        XCTAssertLessThan(at30.currentStageIndex, at50.currentStageIndex, "年纪越大，所处大限应越靠后")
+        // 十二运程本身不随查看日期改变，只有「当前」标记会移
+        let strip: (LifeStage) -> LifeStage = { stage in
+            LifeStage(
+                index: stage.index, startAge: stage.startAge, endAge: stage.endAge,
+                startYear: stage.startYear, endYear: stage.endYear, branch: stage.branch,
+                natalKind: stage.natalKind, ganzhi: stage.ganzhi, stars: stage.stars,
+                title: stage.title, themeLine: stage.themeLine, score: stage.score, tone: stage.tone,
+                career: stage.career, family: stage.family, parents: stage.parents,
+                health: stage.health, milestones: stage.milestones, isCurrent: false
+            )
+        }
+        XCTAssertEqual(at30.stages.map(strip), at50.stages.map(strip), "换参考日期不应改变十二运程本身，只改当前位置")
+        XCTAssertEqual(at30.currentStageIndex, chart.currentDecadeIndex(age: chart.nominalAge(on: date(2019, 6, 15))))
+    }
+
+    func testLifeStageTextIsWellFormed() throws {
+        let reference = date(2026, 11, 8)
+        for (month, hour) in [(3, 8), (7, 14), (11, 20)] {
+            let chart = try ChartEngine.makeChart(from: input(date(1988, month, 9, hour)), referenceDate: reference)
+            let overview = LifeTimelineEngine.overview(for: chart, referenceDate: reference)
+
+            // 十二限各落一宫，标题必然互不相同
+            XCTAssertEqual(Set(overview.stages.map(\.title)).count, 12)
+            XCTAssertEqual(Set(overview.stages.map(\.natalKind)).count, 12)
+
+            for stage in overview.stages {
+                let text = stage.themeLine + stage.career + stage.family + stage.parents + stage.health
+                XCTAssertFalse(text.contains("宫宫"), "出现叠字：\(stage.themeLine)")
+                XCTAssertFalse(text.contains("命命"), "出现叠字：\(stage.themeLine)")
+                XCTAssertFalse(text.contains("。。"), "出现双句号")
+                XCTAssertFalse(text.contains("；。"), "出现分号接句号")
+                XCTAssertFalse(text.contains("  "), "出现连续空格")
+            }
+            for line in overview.currentFocus {
+                XCTAssertFalse(line.isEmpty)
+                XCTAssertFalse(line.contains("宫宫"))
+            }
+        }
+    }
+
+    // MARK: - 同盘古人
+
+    func testHistoricalFigureLibraryIntegrity() {
+        XCTAssertGreaterThanOrEqual(HistoricalFigures.all.count, 30)
+        XCTAssertEqual(Set(HistoricalFigures.all.map(\.id)).count, HistoricalFigures.all.count, "人物 id 不应重复")
+        let combos = HistoricalFigures.all.map { Set($0.stars) }
+        XCTAssertEqual(Set(combos.map { $0.map(\.rawValue).sorted().joined(separator: "+") }).count, combos.count, "每个主星组合只应对应一位人物")
+        for figure in HistoricalFigures.all {
+            XCTAssertFalse(figure.stars.isEmpty)
+            XCTAssertFalse(figure.name.isEmpty)
+            XCTAssertFalse(figure.era.isEmpty)
+            XCTAssertGreaterThan(figure.story.count, 20)
+            XCTAssertGreaterThan(figure.resonance.count, 15)
+            XCTAssertGreaterThan(figure.lesson.count, 10)
+        }
+        XCTAssertFalse(HistoricalFigures.disclaimer.isEmpty)
+    }
+
+    func testHistoricalFigureMatching() throws {
+        let reference = date(2026, 11, 8)
+        let chart = try ChartEngine.makeChart(from: input(date(1990, 6, 15, 9, 30), gender: .female), referenceDate: reference)
+        let matches = HistoricalFigures.matches(for: chart)
+        XCTAssertFalse(matches.isEmpty)
+        XCTAssertLessThanOrEqual(matches.count, 2)
+
+        let lifeStars = Set(chart.palace(at: chart.lifeBranch).mainStars)
+        for match in matches {
+            XCTAssertFalse(match.figure.story.isEmpty)
+            XCTAssertFalse(match.sharedStars.isEmpty)
+            XCTAssertTrue(Set(match.sharedStars).isSubset(of: Set(match.figure.stars)))
+            if match.kind == .sameCombo {
+                XCTAssertEqual(Set(match.figure.stars), lifeStars)
+            } else {
+                XCTAssertFalse(Set(match.figure.stars).isDisjoint(with: lifeStars))
+            }
+        }
+        XCTAssertEqual(HistoricalFigures.matches(for: chart), matches, "同一张盘应匹配到固定的人物")
+    }
+
+    func testHistoricalFigureCoversEveryStarCombination() throws {
+        // 遍历多个生日，命宫主星组合都应能在人物库里找到同宫或同星的对照
+        for month in [1, 4, 7, 10] {
+            for hour in [2, 9, 15, 21] {
+                let chart = try ChartEngine.makeChart(from: input(date(1992, month, 12, hour)), referenceDate: date(2026, 11, 8))
+                let matches = HistoricalFigures.matches(for: chart)
+                XCTAssertFalse(matches.isEmpty, "命宫 \(chart.palace(at: chart.lifeBranch).mainStars) 未匹配到人物")
+            }
+        }
+    }
 }

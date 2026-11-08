@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		303450D20728855E94349330 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C73FA8E9B645E5D0289211A /* TodayView.swift */; };
+		36EF057D2BB7037447A0396E /* LifeOverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF755455D68BAAF1F44ECFBE /* LifeOverviewView.swift */; };
 		3C965FE684DC18F9787FD694 /* ZiWeiCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4B5E1C32B07F36AF6F931685 /* ZiWeiCore */; };
 		4713EDEA3BD5D9F299F9C04A /* InsightView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A68E8D540313A15B17F219D /* InsightView.swift */; };
 		4D0FDD744842EBD4412686EF /* BirthInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A7803E698021E12C541266 /* BirthInputView.swift */; };
@@ -36,6 +37,7 @@
 		82B430F16286A7F90BA06773 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		91CFD9E935AA1D6D45BB1CE9 /* LayerSwitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayerSwitcher.swift; sourceTree = "<group>"; };
 		9A2D5B0D88D74A6A03B0BF76 /* ChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartView.swift; sourceTree = "<group>"; };
+		CF755455D68BAAF1F44ECFBE /* LifeOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifeOverviewView.swift; sourceTree = "<group>"; };
 		D1A7803E698021E12C541266 /* BirthInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BirthInputView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -91,6 +93,7 @@
 				9A2D5B0D88D74A6A03B0BF76 /* ChartView.swift */,
 				3A68E8D540313A15B17F219D /* InsightView.swift */,
 				91CFD9E935AA1D6D45BB1CE9 /* LayerSwitcher.swift */,
+				CF755455D68BAAF1F44ECFBE /* LifeOverviewView.swift */,
 				652A303AABD66E43773BB12A /* RadarChart.swift */,
 				82B430F16286A7F90BA06773 /* RootView.swift */,
 				00FBC694CCC18CA362A1E9B4 /* SharePosterView.swift */,
@@ -208,6 +211,7 @@
 				60ECCFF7F092EA00D4D877EF /* ChartView.swift in Sources */,
 				4713EDEA3BD5D9F299F9C04A /* InsightView.swift in Sources */,
 				93C75DE1E8ECFAD0BA8786C4 /* LayerSwitcher.swift in Sources */,
+				36EF057D2BB7037447A0396E /* LifeOverviewView.swift in Sources */,
 				F97F3BF2A20C5A176A8A90C3 /* RadarChart.swift in Sources */,
 				7C8DBEC62082B3B049F89221 /* RootView.swift in Sources */,
 				EAFC797326805015C8EEE40B /* SharePosterView.swift in Sources */,
@@ -226,7 +230,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_TEAM = 5Y7JPFB56Q;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -242,7 +246,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.4.0;
+				MARKETING_VERSION = 1.5.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ziweidaily.5Y7JPFB56Q;
 				PRODUCT_MODULE_NAME = ZiWeiDaily;
 				PRODUCT_NAME = ZiWeiDaily;
@@ -379,7 +383,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_TEAM = 5Y7JPFB56Q;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -395,7 +399,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.4.0;
+				MARKETING_VERSION = 1.5.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ziweidaily.5Y7JPFB56Q;
 				PRODUCT_MODULE_NAME = ZiWeiDaily;
 				PRODUCT_NAME = ZiWeiDaily;

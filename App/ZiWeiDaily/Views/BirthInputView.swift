@@ -162,7 +162,7 @@ struct BirthInputView: View {
                         Text("本期开放")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(Theme.cinnabar)
-                        Text("本命 / 大限 / 流年 / 流月 / 流日 / 流时六层切换 · 星曜七档亮度 · 三方四正高亮 · 宫位四段式解读 · 十四维命理解读 · 经典格局 · 四化路径 · 六维雷达图 · 飞星自化 · 长生十二神 · 小限 · 古籍断语摘编 · 全盘报告导出")
+                        Text("本命 / 大限 / 流年 / 流月 / 流日 / 流时六层切换 · 星曜七档亮度 · 三方四正高亮 · 宫位四段式解读 · 十四维命理解读 · 经典格局 · 四化路径 · 六维雷达图 · 飞星自化 · 长生十二神 · 小限 · 古籍断语摘编 · 一生运程 · 同盘古人 · 全盘报告导出")
                             .font(.caption)
                             .foregroundStyle(Theme.secondaryInk)
                         Text("后续版本")

@@ -45,6 +45,8 @@ final class AppState: ObservableObject {
     private let storageKey = "ziwei.daily.birth-input.v1"
     private let profilesKey = "ziwei.daily.profiles.v1"
     private let proKey = "ziwei.daily.pro.v1"
+    /// 一生运程计算较重，按「盘 + 当天」缓存，避免每次重绘都重算。
+    private var lifeCache: (key: String, overview: LifeOverview)?
 
     private static func defaultDate() -> Date {
         var calendar = Calendar(identifier: .gregorian)
@@ -282,6 +284,83 @@ final class AppState: ObservableObject {
     var topicScores: [TopicScore] {
         guard let chart, let layer = currentLayer else { return [] }
         return TopicScoreEngine.scores(chart: chart, layer: layer)
+    }
+
+    // MARK: - 一生运程
+
+    /// 十二大限逐段综述。计算量比单层解读大，按「盘 + 当天」缓存一份。
+    var lifeOverview: LifeOverview? {
+        guard let chart else { return nil }
+        let key = lifeCacheKey(chart)
+        if let cached = lifeCache, cached.key == key {
+            return cached.overview
+        }
+        let overview = LifeTimelineEngine.overview(for: chart)
+        lifeCache = (key, overview)
+        return overview
+    }
+
+    /// 命宫主星组合对应的同盘古人。
+    var figureMatches: [FigureMatch] {
+        guard let chart else { return [] }
+        return HistoricalFigures.matches(for: chart)
+    }
+
+    private func lifeCacheKey(_ chart: Chart) -> String {
+        let day = Calendar.current.startOfDay(for: Date()).timeIntervalSince1970
+        return [
+            "\(chart.lifeBranch)",
+            "\(chart.bodyBranch)",
+            chart.bureau.rawValue,
+            "\(chart.resolvedBirth.adjustedDate.timeIntervalSince1970)",
+            "\(day)"
+        ].joined(separator: "|")
+    }
+
+    /// 一生运程的文字版，供分享。
+    var lifeReportText: String {
+        guard let chart, let overview = lifeOverview else { return "" }
+        let name = input.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        var lines: [String] = []
+        lines.append(name.isEmpty ? "我的紫微·一生运程" : "\(name)的紫微·一生运程")
+        lines.append("命宫在\(Ganzhi.branches[chart.lifeBranch]) · \(chart.bureau.bureauName) · \(chart.isForwardDecade ? "大限顺行" : "大限逆行")")
+        lines.append("")
+        lines.append(overview.headline)
+        lines.append(overview.arc)
+        lines.append("")
+        for stage in overview.stages {
+            let mark = stage.isCurrent ? "【当前】" : ""
+            lines.append("\(mark)\(stage.title) · \(stage.rangeText)（\(stage.yearText)）\(stage.tone.rawValue) \(stage.score) 分")
+            lines.append("  事业：\(stage.career.replacingOccurrences(of: "\n", with: " "))")
+            lines.append("  家庭：\(stage.family.replacingOccurrences(of: "\n", with: " "))")
+            lines.append("  父母：\(stage.parents.replacingOccurrences(of: "\n", with: " "))")
+            lines.append("  身心：\(stage.health.replacingOccurrences(of: "\n", with: " "))")
+            if !stage.milestones.isEmpty {
+                lines.append("  节点：\(stage.milestones.joined(separator: "；"))")
+            }
+        }
+        lines.append("")
+        lines.append("【眼下要留意】")
+        lines.append(contentsOf: overview.currentFocus)
+        lines.append("")
+        lines.append("【关键节点】")
+        for node in overview.nearNodes + overview.lifeNodes {
+            lines.append("\(node.yearText) \(node.ageText) \(node.kind.rawValue)：\(node.title)")
+            lines.append("  \(node.detail)")
+        }
+        if !figureMatches.isEmpty {
+            lines.append("")
+            lines.append("【同盘意象】")
+            for match in figureMatches {
+                lines.append("\(match.figure.name)（\(match.figure.era)·\(match.figure.title)）·\(match.kind.rawValue)")
+                lines.append("  \(match.figure.resonance)")
+                lines.append("  可借鉴：\(match.figure.lesson)")
+            }
+            lines.append(HistoricalFigures.disclaimer)
+        }
+        lines.append("")
+        lines.append("传统文化参考，不构成任何决策依据。")
+        return lines.joined(separator: "\n")
     }
 
     var currentDecade: DecadeSlot? {

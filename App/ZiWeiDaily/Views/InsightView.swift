@@ -7,6 +7,7 @@ struct InsightView: View {
     @State private var expanded: Set<String> = [InsightTopic.overview.rawValue]
     @State private var showBasis = false
     @State private var showAllTopics = ProcessInfo.processInfo.environment["ZIWEI_ALL"] == "1"
+    @State private var showLifeOverview = ProcessInfo.processInfo.environment["ZIWEI_LIFE"] == "1"
 
     var body: some View {
         NavigationStack {
@@ -15,6 +16,8 @@ struct InsightView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         header(chart: chart, layer: layer)
+
+                        lifeOverviewEntry
 
                         LayerSwitcher()
                             .ziWeiCard(padding: 14)
@@ -58,6 +61,9 @@ struct InsightView: View {
                 }
                 .background(Theme.paper)
                 .navigationTitle("命理解读")
+                .navigationDestination(isPresented: $showLifeOverview) {
+                    LifeOverviewView()
+                }
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
                         ShareLink(item: state.fullReportText) {
@@ -106,6 +112,67 @@ struct InsightView: View {
 
     private var visibleInsights: [Insight] {
         showAllTopics ? state.insights : state.insights.filter { $0.topic.isCore }
+    }
+
+    /// 一生总览入口：不点进去也能看到当前这十年的定性与提醒。
+    @ViewBuilder
+    private var lifeOverviewEntry: some View {
+        Button {
+            showLifeOverview = true
+        } label: {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 7) {
+                    Text("一生总览")
+                        .font(.system(.title3, design: .serif, weight: .semibold))
+                        .foregroundStyle(Theme.ink)
+                    TagPill(text: "十二运程", color: Theme.gold)
+                    Spacer(minLength: 0)
+                    HStack(spacing: 3) {
+                        Text("展开")
+                            .font(.caption2)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 9, weight: .semibold))
+                    }
+                    .foregroundStyle(Theme.cinnabar)
+                }
+
+                if let overview = state.lifeOverview, let current = overview.current {
+                    Text(overview.headline)
+                        .font(.system(.subheadline, design: .serif))
+                        .foregroundStyle(Theme.cinnabar)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    HStack(spacing: 6) {
+                        Text("眼下：\(current.title)")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(Theme.ink)
+                        TagPill(text: current.rangeText, color: Theme.secondaryInk)
+                        TagPill(text: "\(current.score) 分", color: Theme.scoreColor(current.score))
+                        Spacer(minLength: 0)
+                    }
+
+                    if let first = overview.currentFocus.first {
+                        Text(first)
+                            .font(.caption)
+                            .foregroundStyle(Theme.secondaryInk)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                    }
+
+                    Text("含逐段事业 / 家庭 / 父母 / 身心 · 关键节点 · 同盘古人")
+                        .font(.caption2)
+                        .foregroundStyle(Theme.secondaryInk)
+                } else {
+                    Text("正在推演十二大限…")
+                        .font(.caption)
+                        .foregroundStyle(Theme.secondaryInk)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .ziWeiCard()
+        }
+        .buttonStyle(.plain)
     }
 
     private var radarCard: some View {
