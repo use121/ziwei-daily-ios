@@ -128,6 +128,20 @@ public enum ClassicLibrary {
         starVerses.first { $0.star == star }
     }
 
+    /// 摘句出处对应的篇名，用于从解读跳到古籍页。
+    ///
+    /// 摘句里写的是简称（如「《骨髓赋》」），篇名是全称（「斗数骨髓赋」），
+    /// 所以按后缀匹配，而不是字符串相等。
+    public static func workTitle(forSource source: String) -> String? {
+        let name = source
+            .replacingOccurrences(of: "《", with: "")
+            .replacingOccurrences(of: "》", with: "")
+            .trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty else { return nil }
+        if let exact = works.first(where: { $0.title == name }) { return exact.title }
+        return works.first { $0.title.hasSuffix(name) || name.hasSuffix($0.title) }?.title
+    }
+
     /// 按篇名查古籍。
     public static func work(_ title: String) -> ClassicWork? {
         works.first { $0.title == title }

@@ -406,8 +406,11 @@ final class ZiWeiCoreTests: XCTestCase {
         XCTAssertTrue(guiren.keyStars.contains(.tianYue))
         XCTAssertTrue(guiren.headline.contains("天魁"))
         XCTAssertTrue(guiren.headline.contains("天钺"))
-        // 四段式：格局 / 来源 / 借力 / 引动
-        XCTAssertEqual(guiren.blocks.map(\.heading), ["贵人格局", "贵人来源", "借力方式", "\(layer.kind.rawValue)引动"])
+        // 四段式：格局 / 来源 / 借力 / 引动；v1.9.0 起末尾可能再挂一段「格局参照」
+        XCTAssertEqual(
+            guiren.blocks.map(\.heading).filter { $0 != "格局参照" },
+            ["贵人格局", "贵人来源", "借力方式", "\(layer.kind.rawValue)引动"]
+        )
         for block in guiren.blocks {
             XCTAssertFalse(block.body.isEmpty)
         }
@@ -1072,5 +1075,107 @@ final class ZiWeiCoreTests: XCTestCase {
         XCTAssertTrue(ClassicLibrary.search("   ").isEmpty)
         XCTAssertTrue(ClassicLibrary.search("这几个字书里没有").isEmpty)
         XCTAssertLessThanOrEqual(ClassicLibrary.search("星", limit: 5).count, 5)
+    }
+    // MARK: - v1.9.0 课簿回看与解读引用格局
+
+    func testLiuRenReplayMatchesLiveCast() {
+        let moment = date(2026, 11, 8, 23, 30)
+        let live = LiuRenEngine.cast(on: moment, timeZone: timeZone)
+        let replay = LiuRenEngine.replay(
+            lunarMonth: live.lunarMonth,
+            lunarDay: live.lunarDay,
+            isLeapMonth: live.isLeapMonth,
+            hourBranch: live.hourBranch,
+            moment: moment,
+            timeZoneIdentifier: timeZone.identifier
+        )
+        XCTAssertEqual(replay, live)
+        XCTAssertEqual(replay.steps.map(\.line), live.steps.map(\.line))
+    }
+
+    func testLiuRenReplayIgnoresClock() {
+        // 课簿回看不随时钟漂移：同一组月日时，换哪天回看，三宫都一样。
+        let a = LiuRenEngine.replay(lunarMonth: 9, lunarDay: 30, hourBranch: 0, moment: date(2026, 1, 1))
+        let b = LiuRenEngine.replay(lunarMonth: 9, lunarDay: 30, hourBranch: 0, moment: date(2030, 10, 10))
+        XCTAssertEqual(a.monthPalace, b.monthPalace)
+        XCTAssertEqual(a.dayPalace, b.dayPalace)
+        XCTAssertEqual(a.hourPalace, b.hourPalace)
+        XCTAssertEqual(a.steps.map(\.line), b.steps.map(\.line))
+    }
+
+    func testPatternBriefFoldRule() {
+        let broken = Pattern(
+            name: "测试破格", kind: .auspicious, category: .dignity,
+            branches: [0], summary: "测试", detail: "", breaking: ["逢煞星"]
+        )
+        let foldedBrief = PatternBrief(pattern: broken)
+        XCTAssertTrue(foldedBrief.isFolded)
+        XCTAssertEqual(foldedBrief.displayedKind, .neutral, "破格的吉格必须降为常格，不能仍按吉格展示")
+
+        let clean = Pattern(
+            name: "测试吉格", kind: .auspicious, category: .dignity,
+            branches: [0], summary: "测试", detail: ""
+        )
+        XCTAssertFalse(PatternBrief(pattern: clean).isFolded)
+        XCTAssertEqual(PatternBrief(pattern: clean).displayedKind, .auspicious)
+    }
+
+    func testInsightsCitePatternsWithinScope() throws {
+        let chart = try ChartEngine.makeChart(from: input(date(1990, 5, 15, 20)), referenceDate: date(2026, 11, 8))
+        let layer = chart.timeLayer(kind: .natal, year: 2026, month: 11, on: date(2026, 11, 8))
+        let insights = InsightEngine.insights(for: chart, layer: layer)
+        let patterns = PatternEngine.patterns(for: chart, layer: layer)
+
+        let overview = try XCTUnwrap(insights.first { $0.topic == .overview })
+        XCTAssertTrue(overview.blocks.contains { $0.heading == "格局参照" })
+        XCTAssertTrue(overview.blocks.contains { $0.heading == "十二神落宫" })
+        XCTAssertLessThanOrEqual(overview.patterns.count, 3)
+        for brief in overview.patterns {
+            XCTAssertTrue(patterns.contains { $0.name == brief.name }, "\(brief.name) 不在当前层命中列表里")
+        }
+
+        // 命宫结构不断六亲与身体：这几个维度不许引用格局。
+        for topic in [InsightTopic.love, .health, .property, .children] {
+            let insight = try XCTUnwrap(insights.first { $0.topic == topic })
+            XCTAssertTrue(insight.patterns.isEmpty, "\(topic.rawValue) 不应引用格局")
+            XCTAssertFalse(insight.blocks.contains { $0.heading == "格局参照" })
+        }
+    }
+
+    func testPatternBlockExplainsFoldAndAvoidsAbsolutes() throws {
+        var foldedSeen = 0
+        for year in [1962, 1972, 1983, 1990, 1996, 2003, 2011] {
+            for hour in [0, 4, 8, 12, 16, 20] {
+                let chart = try ChartEngine.makeChart(from: input(date(year, 3, 9, hour)), referenceDate: date(2026, 11, 8))
+                let layer = chart.timeLayer(kind: .natal, year: 2026, month: 11, on: date(2026, 11, 8))
+                for insight in InsightEngine.insights(for: chart, layer: layer) {
+                    guard let block = insight.blocks.first(where: { $0.heading == "格局参照" }) else { continue }
+                    if insight.patterns.contains(where: { $0.isFolded }) {
+                        foldedSeen += 1
+                        XCTAssertTrue(block.body.contains("折为常格"), block.body)
+                    }
+                    for banned in ["必定", "一定会", "大凶", "必死"] {
+                        XCTAssertFalse(block.body.contains(banned), block.body)
+                    }
+                }
+            }
+        }
+        XCTAssertGreaterThan(foldedSeen, 0, "样本里没有出现破格，这条测试没生效")
+    }
+
+    func testInsightDeterministicWithPatterns() throws {
+        let chart = try ChartEngine.makeChart(from: input(date(1983, 8, 21, 9)), referenceDate: date(2026, 11, 8))
+        let layer = chart.timeLayer(kind: .natal, year: 2026, month: 11, on: date(2026, 11, 8))
+        XCTAssertEqual(InsightEngine.insights(for: chart, layer: layer), InsightEngine.insights(for: chart, layer: layer))
+    }
+
+    func testEveryQuoteSourceMapsToAWork() {
+        for quote in ClassicLibrary.quotes {
+            guard let title = ClassicLibrary.workTitle(forSource: quote.source) else {
+                XCTFail("出处《\(quote.source)》找不到对应篇目")
+                continue
+            }
+            XCTAssertNotNil(ClassicLibrary.work(title), "\(title) 不在古籍库里")
+        }
     }
 }

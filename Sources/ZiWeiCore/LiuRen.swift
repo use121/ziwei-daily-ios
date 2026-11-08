@@ -198,8 +198,7 @@ public enum LiuRenEngine {
     }
 
     /// 以此刻起课。用设备时间与设备时区，闰月按本月数。
-    public static func cast(on date: Date = Date(), timeZone: TimeZone = .current) -> LiuRenCast {
-        let lunar = ChineseCalendarConverter.lunarDate(from: date, timeZone: timeZone)
+    public static func cast(on date: Date = Date(), timeZone: TimeZone = .current) -> LiuRenCast {        let lunar = ChineseCalendarConverter.lunarDate(from: date, timeZone: timeZone)
         let components = ChineseCalendarConverter.gregorianComponents(date, timeZone: timeZone)
         // 23 点后仍记当天农历日，时辰已入子时，这与排盘里的晚子时口径一致
         let branch = ChineseCalendarConverter.hourBranch(hour: components.hour ?? 12)
@@ -212,6 +211,32 @@ public enum LiuRenEngine {
             lunarDay: lunar.day,
             isLeapMonth: lunar.isLeapMonth,
             hourBranch: branch,
+            monthPalace: result.month,
+            dayPalace: result.day,
+            hourPalace: result.hour
+        )
+    }
+
+    /// 按已记录的月日时复现一课，用于课簿回看。
+    ///
+    /// 不读当前时钟：月、日、时三样都是当时记下来的，闰月与否也一并保留，
+    /// 所以复现出的三宫与断语与起课当时逐字一致。
+    public static func replay(
+        lunarMonth: Int,
+        lunarDay: Int,
+        isLeapMonth: Bool = false,
+        hourBranch: Int,
+        moment: Date,
+        timeZoneIdentifier: String = TimeZone.current.identifier
+    ) -> LiuRenCast {
+        let result = palaces(lunarMonth: lunarMonth, lunarDay: lunarDay, hourBranch: hourBranch)
+        return LiuRenCast(
+            moment: moment,
+            timeZoneIdentifier: timeZoneIdentifier,
+            lunarMonth: max(1, lunarMonth),
+            lunarDay: max(1, lunarDay),
+            isLeapMonth: isLeapMonth,
+            hourBranch: Ganzhi.mod(hourBranch, 12),
             monthPalace: result.month,
             dayPalace: result.day,
             hourPalace: result.hour

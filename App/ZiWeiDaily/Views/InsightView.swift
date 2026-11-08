@@ -8,6 +8,8 @@ struct InsightView: View {
     @State private var showBasis = false
     @State private var showAllTopics = ProcessInfo.processInfo.environment["ZIWEI_ALL"] == "1"
     @State private var showLifeOverview = ProcessInfo.processInfo.environment["ZIWEI_LIFE"] == "1"
+    /// 从解读里的古籍原句跳转过去的篇目。
+    @State private var classicWork: ClassicWork?
 
     var body: some View {
         NavigationStack {
@@ -34,6 +36,11 @@ struct InsightView: View {
                                 onToggle: { toggle(insight.id) },
                                 onOpenPalace: {
                                     state.selectedTab = .chart
+                                },
+                                onOpenClassic: { source in
+                                    guard let title = ClassicLibrary.workTitle(forSource: source),
+                                          let work = ClassicLibrary.work(title) else { return }
+                                    classicWork = work
                                 }
                             )
                             .id(insight.id)
@@ -63,6 +70,9 @@ struct InsightView: View {
                 .navigationTitle("命理解读")
                 .navigationDestination(isPresented: $showLifeOverview) {
                     LifeOverviewView()
+                }
+                .navigationDestination(item: $classicWork) { work in
+                    ClassicWorkView(work: work)
                 }
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
@@ -303,7 +313,7 @@ struct InsightView: View {
                     basisRow("当前虚岁", "\(chart.nominalAge()) 岁")
                     basisRow("四化来源", layer.kind == .natal ? "生年\(chart.resolvedBirth.lunarDate.yearGanzhi)" : "\(layer.stemName)干（\(layer.kind.rawValue)层）")
                     basisRow("亮度口径", "《紫微斗数全书》七档")
-                    Text("解读为规则化生成，不含随机成分；同一命盘在不同日期查看本命层，结论完全一致。")
+                    Text("解读为规则化生成，不含随机成分；同一命盘在不同日期查看本命层，结论完全一致。格局与十二神只作结构说明，不进入评分。")
                         .font(.caption)
                         .foregroundStyle(Theme.secondaryInk)
                         .padding(.top, 2)
@@ -344,6 +354,7 @@ private struct InsightCard: View {
     let isExpanded: Bool
     let onToggle: () -> Void
     let onOpenPalace: () -> Void
+    let onOpenClassic: (String) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -388,6 +399,10 @@ private struct InsightCard: View {
                         }
                     }
 
+                    if !insight.patterns.isEmpty {
+                        patternBriefs
+                    }
+
                     if !insight.keyStars.isEmpty {
                         FlowLayout {
                             ForEach(insight.keyStars, id: \.self) { star in
@@ -419,5 +434,52 @@ private struct InsightCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .ziWeiCard()
+    }
+
+    /// 格局名 + 档位 + 古籍原句。原句可点，跳到该篇全文。
+    private var patternBriefs: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            FlowLayout {
+                ForEach(insight.patterns) { brief in
+                    TagPill(
+                        text: brief.name,
+                        color: brief.displayedKind == .auspicious ? Theme.jade : Theme.gold
+                    )
+                }
+            }
+
+            ForEach(insight.patterns.filter { $0.quote != nil }) { brief in
+                if let quote = brief.quote {
+                    Button {
+                        onOpenClassic(quote.source)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                Text("「\(quote.original)」")
+                                    .font(.system(size: 12, design: .serif))
+                                    .foregroundStyle(Theme.cinnabar)
+                                    .multilineTextAlignment(.leading)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Spacer(minLength: 0)
+                                Text(quote.source)
+                                    .font(.caption2)
+                                    .foregroundStyle(Theme.secondaryInk)
+                            }
+                            Text(quote.plain)
+                                .font(.caption2)
+                                .foregroundStyle(Theme.secondaryInk)
+                                .multilineTextAlignment(.leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(9)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Theme.goldLight.opacity(0.28))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("查看古籍原文，\(quote.source)")
+                }
+            }
+        }
     }
 }

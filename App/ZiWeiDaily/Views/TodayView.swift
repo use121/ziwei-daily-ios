@@ -114,7 +114,8 @@ struct TodayView: View {
                 }
                 #if DEBUG
                 .onAppear {
-                    if ProcessInfo.processInfo.environment["ZIWEI_LIUREN"] == "1" {
+                    let environment = ProcessInfo.processInfo.environment
+                    if environment["ZIWEI_LIUREN"] == "1" || environment["ZIWEI_LIUREN_OPEN"] == "1" {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { liuRenActive = true }
                     }
                 }

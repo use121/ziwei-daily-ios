@@ -225,34 +225,159 @@ public struct InsightBlock: Identifiable, Codable, Equatable, Sendable {
     public var id: String { heading }
 }
 
+/// 解读里引用的格局摘要。
+///
+/// 只带「够说明结构长相」的信息：判定过程（必具 / 加分 / 破格逐条）留在命盘页，
+/// 这里给主题页一段可读的引文，避免两处各说一套。
+public struct PatternBrief: Identifiable, Codable, Equatable, Sendable {
+    public let name: String
+    public let kind: PatternKind
+    public let category: PatternCategory
+    public let summary: String
+    /// 已触发的破格项；非空即已折力。
+    public let breaking: [String]
+    /// 古籍原句；现代整理出来的组合没有出处，为 nil。
+    public let quote: ClassicQuote?
+
+    public var id: String { name }
+
+    public init(pattern: Pattern) {
+        name = pattern.name
+        kind = pattern.kind
+        category = pattern.category
+        summary = pattern.summary
+        breaking = pattern.breaking
+        quote = ClassicLibrary.quote(for: pattern.name)
+    }
+
+    /// 折力之后的实际档位：吉格一旦破格，按常格叙述，不改判为凶。
+    public var displayedKind: PatternKind {
+        breaking.isEmpty ? kind : (kind == .auspicious ? .neutral : kind)
+    }
+
+    public var isFolded: Bool { !breaking.isEmpty }
+}
+
 public struct Insight: Identifiable, Codable, Equatable, Sendable {
     public let topic: InsightTopic
     public let headline: String
-    public let blocks: [InsightBlock]
+    public var blocks: [InsightBlock]
     public let keyStars: [Star]
     public let palaceBranch: Int
     public let borrowsOpposite: Bool
     public let caution: String
+    /// 本主题引用到的格局，供界面附上古籍原句。
+    public var patterns: [PatternBrief] = []
 
     public var id: String { topic.rawValue }
+}
+
+extension InsightTopic {
+    /// 该维度会引用哪几类格局。
+    ///
+    /// 格局判的是命宫三方四正的结构，所以只挂到语义相关的维度上。
+    /// 感情、健康、田宅这些由本宫星曜决定的维度不硬套格局——
+    /// 拿命宫格局去断六亲与身体，是常见但站不住的用法。
+    public var citedPatternCategories: [PatternCategory] {
+        switch self {
+        case .overview: PatternCategory.allCases
+        case .personality: [.structure, .dignity]
+        case .career: [.wealth, .literary]
+        case .wealth: [.wealth]
+        case .friends: [.support]
+        case .guiren: [.support, .literary]
+        default: []
+        }
+    }
+
+    /// 每个维度最多引用几条，避免解读变成格局清单。
+    var patternQuota: Int {
+        self == .overview ? 3 : 2
+    }
 }
 
 /// 由命盘规则确定性生成六维解读。同一张盘、同一时间层，输出恒定。
 public enum InsightEngine {
     public static func insights(for chart: Chart, layer: TimeLayer) -> [Insight] {
-        InsightTopic.allCases.map { topic in
+        let patterns = PatternEngine.patterns(for: chart, layer: layer)
+        return InsightTopic.allCases.map { topic in
+            var insight: Insight
             switch topic {
-            case .overview: overview(chart: chart, layer: layer)
-            case .personality: personality(chart: chart, layer: layer)
-            case .love: love(chart: chart, layer: layer)
-            case .career: career(chart: chart, layer: layer)
-            case .wealth: wealth(chart: chart, layer: layer)
-            case .health: health(chart: chart, layer: layer)
-            case .guiren: benefactor(chart: chart, layer: layer)
-            default: palaceInsight(topic: topic, chart: chart, layer: layer)
+            case .overview: insight = overview(chart: chart, layer: layer)
+            case .personality: insight = personality(chart: chart, layer: layer)
+            case .love: insight = love(chart: chart, layer: layer)
+            case .career: insight = career(chart: chart, layer: layer)
+            case .wealth: insight = wealth(chart: chart, layer: layer)
+            case .health: insight = health(chart: chart, layer: layer)
+            case .guiren: insight = benefactor(chart: chart, layer: layer)
+            default: insight = palaceInsight(topic: topic, chart: chart, layer: layer)
             }
+
+            let briefs = citedBriefs(topic: topic, patterns: patterns)
+            insight.patterns = briefs
+            if let block = patternBlock(topic: topic, briefs: briefs) {
+                insight.blocks.append(block)
+            }
+            if topic == .overview {
+                insight.blocks.append(godBlock(chart: chart, layer: layer))
+            }
+            return insight
         }
     }
+
+    // MARK: - 格局与十二神的接入
+
+    private static func citedBriefs(topic: InsightTopic, patterns: [Pattern]) -> [PatternBrief] {
+        let categories = topic.citedPatternCategories
+        guard !categories.isEmpty else { return [] }
+        return patterns
+            .filter { categories.contains($0.category) }
+            .prefix(topic.patternQuota)
+            .map(PatternBrief.init(pattern:))
+    }
+
+    /// 把格局写成一段话：先点出是哪几条、属哪一类，再统一交代破格与否。
+    private static func patternBlock(topic: InsightTopic, briefs: [PatternBrief]) -> InsightBlock? {
+        guard !briefs.isEmpty else { return nil }
+
+        let items = briefs
+            .map { "「\($0.name)」属\($0.category.rawValue)，\($0.summary)" }
+            .joined()
+
+        let folded = briefs.filter(\.isFolded)
+        let verdict: String
+        if folded.isEmpty {
+            verdict = briefs.contains { $0.kind == .auspicious }
+                ? "这几条都未见破格，结构是站得住的。"
+                : "这几条只说明结构长相，本身不分吉凶。"
+        } else {
+            let details = folded
+                .map { "「\($0.name)」的\($0.breaking.joined(separator: "、"))已出现" }
+                .joined(separator: "；")
+            verdict = "\(details)，按本项目口径折为常格，力量要打折，不必按吉格去期待。"
+        }
+
+        let closing = topic == .overview
+            ? "格局用来判断这张盘的结构类型，不作吉凶断定；落到具体事情上，仍要看宫位与四化。"
+            : "这组结构在命宫三方四正上成立，所以放在这一维里说；它不改变本宫星曜的判断，只是补一个背景。"
+
+        return InsightBlock(heading: "格局参照", body: items + verdict + closing)
+    }
+
+    /// 命宫上的岁前、将前十二神。只描述气象，不进入评分。
+    private static func godBlock(chart: Chart, layer: TimeLayer) -> InsightBlock {
+        let branch = layer.pivotBranch
+        var parts: [String] = []
+        if let sui = chart.suiQianGod(layer: layer, branch: branch) {
+            parts.append("岁前见「\(sui.name)」，\(sui.gist)")
+        }
+        if let jiang = chart.jiangQianGod(layer: layer, branch: branch) {
+            parts.append("将前见「\(jiang.name)」，\(jiang.gist)")
+        }
+        let body = parts.joined(separator: " ") + "两组神煞各按该层地支顺行布宫，这里只描述当下的气象，不参与打分。"
+        return InsightBlock(heading: "十二神落宫", body: body)
+    }
+
 
     // MARK: - 六维
 

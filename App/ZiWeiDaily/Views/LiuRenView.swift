@@ -20,11 +20,13 @@ struct LiuRenView: View {
     var origin: String = "紫微命盘"
 
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var log = LiuRenLog()
+    @ObservedObject private var log = LiuRenLog.shared
 
     @State private var question = ""
     @State private var cast: LiuRenCast?
     @State private var revealed = 0
+    /// 调试用：直接进课簿。
+    @State private var showLog = false
     @FocusState private var questionFocused: Bool
 
     private var moment: LiuRenCast { LiuRenEngine.cast(on: Date()) }
@@ -79,9 +81,28 @@ struct LiuRenView: View {
                 }
                 .accessibilityLabel("返回\(origin)")
             }
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink {
+                    LiuRenLogView()
+                } label: {
+                    HStack(spacing: 3) {
+                        Image(systemName: "book.closed")
+                            .font(.footnote)
+                        Text("课簿")
+                    }
+                    .foregroundStyle(Theme.cinnabar)
+                }
+                .accessibilityLabel("课簿")
+            }
+        }
+        .navigationDestination(isPresented: $showLog) {
+            LiuRenLogView()
         }
         #if DEBUG
         .onAppear {
+            if ProcessInfo.processInfo.environment["ZIWEI_LIUREN_LOG"] == "1" {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { showLog = true }
+            }
             if ProcessInfo.processInfo.environment["ZIWEI_LIUREN"] == "1" {
                 question = "这周谈的合作能签下来吗"
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { startCast() }
